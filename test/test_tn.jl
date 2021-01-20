@@ -1,5 +1,6 @@
 
 using LightGraphs
+using ITensors
 
 @testset "Test circuit to Tensor Network Circuit conversion" begin
     circ = QXSim.create_test_circuit()
@@ -40,5 +41,4 @@ end
     g = convert_to_graph(tnc)
     @test nv(g) == 9 # 3 gate, 3 input and 3 output
     @test ne(g) == 8 # 2 between gates and 6 to inputs and outputs
-
 end
