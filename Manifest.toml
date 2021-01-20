@@ -197,7 +197,9 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [[QXZoo]]
 deps = ["DataStructures", "LinearAlgebra", "Memoize", "StaticArrays", "Test", "UUIDs"]
-path = "/Users/nmoran/.julia/dev/QXZoo"
+git-tree-sha1 = "5dbdc0d3e328343c0cb0681da86518727a35193f"
+repo-rev = "master"
+repo-url = "git@git.ichec.ie:quantex/QXZoo.jl.git"
 uuid = "f27fdc93-0c88-4b5a-91cb-e8275adac0f6"
 version = "0.1.0"
 
