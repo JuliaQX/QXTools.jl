@@ -32,11 +32,11 @@ mutable struct TensorNetworkCircuit
 end
 
 """
-convert_to_tnc(circ::QXZoo.Circuit.Circ)
+_convert_to_tnc(circ::QXZoo.Circuit.Circ)
 
 Function to convert a QXZoo circuit to a QXSim tensor network circuit
 """
-function convert_to_tnc(circ::QXZoo.Circuit.Circ)
+function _convert_to_tnc(circ::QXZoo.Circuit.Circ)
     tnc = TensorNetworkCircuit(circ.num_qubits)
 
     for gate in circ.circ_ops
@@ -49,14 +49,34 @@ function convert_to_tnc(circ::QXZoo.Circuit.Circ)
             tnc.output_indices[qubit] = output_index
             push!(tnc.tn.data, ITensor(NDTensors.Dense(mat_elements), [output_index, input_index]))
         elseif typeof(gate) <: QXZoo.GateOps.GateCall2
-            qubit1 = gate.ctrl + 1
-            qubit2 = gate.target + 1
+            qubit1 = gate.target + 1
+            qubit2 = gate.ctrl + 1
             input_indices = tnc.output_indices[[qubit1, qubit2]]
             output_indices = [prime(x) for x in input_indices]
             tnc.output_indices[[qubit1, qubit2]] = output_indices
             push!(tnc.tn.data, ITensor(NDTensors.Dense(mat_elements), [output_indices..., input_indices...]))
         end
     end
+    tnc
+end
+
+"""
+convert_to_tnc(circ::QXZoo.Circuit.Circ;
+               input::Union{String, Nothing}=nothing,
+               output::Union{String, Nothing}=nothing,
+               no_input::Bool=false,
+               no_output::Bool=false)
+
+Function to convert a QXZoo circuit to a QXSim tensor network circuit
+"""
+function convert_to_tnc(circ::QXZoo.Circuit.Circ;
+                        input::Union{String, Nothing}=nothing,
+                        output::Union{String, Nothing}=nothing,
+                        no_input::Bool=false,
+                        no_output::Bool=false)
+    tnc = _convert_to_tnc(circ)
+    if !no_input add_input!(tnc, input) end
+    if !no_output add_output!(tnc, output) end
     tnc
 end
 
@@ -94,7 +114,7 @@ end
 
 Function to add input tensors to the circuit
 """
-function add_input!(tnc::TensorNetworkCircuit; input::Union{String, Nothing}=nothing)
+function add_input!(tnc::TensorNetworkCircuit, input::Union{String, Nothing}=nothing)
     qubits = tnc.qubits
 
     # TODO: check if there are already inputs present
@@ -112,7 +132,7 @@ end
 
 Function to add output tensors to the circuit
 """
-function add_output!(tnc::TensorNetworkCircuit; output::Union{String, Nothing}=nothing)
+function add_output!(tnc::TensorNetworkCircuit, output::Union{String, Nothing}=nothing)
     qubits = tnc.qubits
 
     # TODO: check if there are already inputs present
@@ -125,4 +145,16 @@ function add_output!(tnc::TensorNetworkCircuit; output::Union{String, Nothing}=n
     tnc.tn = compose(tnc.tn, TensorNetwork(output_tensors))
 end
 
+"""
+    simple_contraction(tn::TensorNetwork)
 
+Function to perfrom a simple contraction, contracting all tensors in order.
+Only useful for very small networks for testing.
+"""
+function simple_contraction(tn::TensorNetwork)
+    a = tn.data[1]
+    for b in tn.data[2:end]
+        a = a * b
+    end
+    a
+end
