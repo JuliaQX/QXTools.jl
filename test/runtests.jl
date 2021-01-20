@@ -2,5 +2,5 @@ using QXSim
 using Test
 
 @testset "QXSim.jl" begin
-    # Write your tests here.
+    include("test_tn.jl")
 end
