@@ -42,6 +42,10 @@ Function to get the matrix for a gate
 """
 function gate_matrix(gate::QXZoo.GateOps.AGateCall)
     mat_elements = convert(Array{ComplexF64}, QXZoo.GateMap.gates[gate.gate_symbol]())
+    # TODO: find better way of identifying multi qubit gates
+    dims = size(mat_elements)
+    new_dims = Tuple(vcat([ones(Int64, convert(Int64, log2(x))) * 2 for x in dims]...))
+    reshape(mat_elements, new_dims)
 end
 
 """

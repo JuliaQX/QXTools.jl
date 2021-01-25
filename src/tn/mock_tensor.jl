@@ -69,10 +69,10 @@ Function to create a copy of the given tensor network with the storage replaced 
 mock tensors
 """
 function use_mock_tensors(tn::TensorNetwork)
-    newtn = TensorNetwork()
-    for tensor in tn.data
-        mock_tensor = MockTensor{ComplexF64}(collect(size(tensor)))
-        push!(newtn.data, ITensor(mock_tensor, inds(tensor)))
+    new_tensor_map = OrderedDict{Symbol, ITensor}()
+    for (sym, tensor) in pairs(tn)
+        mock_tensor = MockTensor{Float64}(collect(size(tensor_data(tn, sym))))
+        new_tensor_map[sym] = ITensor(mock_tensor, inds(tensor))
     end
-    newtn
+    TensorNetwork(new_tensor_map, copy(tn.bond_map))
 end

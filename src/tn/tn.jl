@@ -1,6 +1,7 @@
 module TN
 
-include("data_structures.jl")
+include("tensor_network.jl")
+include("tensor_network_circuit.jl")
 include("graph.jl")
 include("mock_tensor.jl")
 

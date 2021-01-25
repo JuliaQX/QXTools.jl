@@ -6,10 +6,10 @@ include("circuits/circuits.jl")
 using .Circuits
 
 # data structions and functions tensor networks
-export convert_to_tnc, next_tensor_id
-export convert_to_graph
+export convert_to_tnc, next_tensor_id, convert_to_graph
 export TensorNetwork, bonds, simple_contraction, tensor_data, neighbours
-export TensorNetworkCircuit
+export TensorNetworkCircuit, qubits, add_input!, add_output!
+export TensorCache, save_cache
 include("tn/tn.jl")
 using .TN
 
