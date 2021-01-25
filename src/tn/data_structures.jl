@@ -1,19 +1,144 @@
 using ITensors
-using QXZoo
-import Base: length
+import QXZoo
+import Base: length, iterate, keys, push!, getindex, merge, eltype
 using ..Circuits
 
-export TensorNetwork, TensorNetworkCircuit
-export compose, add_input!, add_output!, simple_contraction
-export convert_to_tnc, add_gate!, tensor_data
-export length
+# TensorNetwork struct and public functions
+export next_tensor_id
+export TensorNetwork, bonds, simple_contraction, tensor_data, neighbours
+# TensorNetworkCircuit struct and public functions
+export TensorNetworkCircuit, add_input!, add_output!, convert_to_tnc
+
+# Overloaded functions for dealing with TensorNetworks
+export length, iterate, keys, push!, getindex, merge, eltype
+
+const qxsim_ids = Dict{Symbol, Int64}(:tensor_id => 0)
+@noinline next_tensor_id() = begin qxsim_ids[:tensor_id] += 1; Symbol("t$(qxsim_ids[:tensor_id])") end
 
 """Tensor network data-structure"""
-struct TensorNetwork
-    data::Array{ITensor, 1}
-    TensorNetwork() = new(Array{ITensor, 1}())
-    TensorNetwork(array::Array{<: ITensor, 1}) = new(array)
+mutable struct TensorNetwork
+    tensor_map::Dict{Symbol, ITensor}
+    bond_map::Dict{Index, Vector{Symbol}}
+
+    # constructors
+    TensorNetwork(tensor_map::Dict{Symbol, ITensor},
+                  bond_map::Dict{<:Index, Vector{Symbol}}) = new(tensor_map, bond_map)
+    TensorNetwork() = new(Dict{Symbol, ITensor}(), Dict{Index, Vector{Symbol}}())
 end
+
+"""
+    TensorNetwork(array::Vector{<: ITensor})
+
+Outer consturctor to create a tensor network object from an array of
+ITensor objects
+"""
+function TensorNetwork(array::Vector{<: ITensor})
+    tensor_map = Dict{Symbol, ITensor}()
+    bond_map = Dict{Index, Vector{Symbol}}()
+    for (i, tensor) in enumerate(array)
+        tensor_id = next_tensor_id()
+        tensor_map[tensor_id] = tensor
+        for bond in inds(tensor)
+            if haskey(bond_map, bond)
+                push!(bond_map[bond], tensor_id)
+            else
+                bond_map[bond] = [tensor_id]
+            end
+        end
+    end
+    TensorNetwork(tensor_map, bond_map)
+end
+
+length(tn::TensorNetwork) = length(tn.tensor_map)
+tensor_data(tn::TensorNetwork, i::Symbol) = tensor_data(tn.tensor_map[i])
+iterate(tn::TensorNetwork) = iterate(values(tn.tensor_map))
+iterate(tn::TensorNetwork, state) = iterate(values(tn.tensor_map), state)
+eltype(tn::TensorNetwork) = ITensor
+keys(tn::TensorNetwork) = keys(tn.tensor_map)
+getindex(tn::TensorNetwork, i::Symbol) = tn.tensor_map[i]
+getindex(tn::TensorNetwork, i::T) where T <: Index = tn.bond_map[i]
+bonds(tn::TensorNetwork) = keys(tn.bond_map)
+
+"""
+    neighbours(tn::TensorNetwork, tensor::Symbol)
+
+Function get the symbols of the neighbouring tensors
+"""
+function neighbours(tn::TensorNetwork, tensor::Symbol)
+    tensor_indices = inds(tn[tensor])
+    connected_tensors = unique(vcat([tn[x] for x in tensor_indices]...))
+    setdiff(connected_tensors, [tensor])
+end
+
+"""
+    merge(a::TensorNetwork, b::TensorNetwork)
+
+Join two networks together
+"""
+function merge(a::TensorNetwork, b::TensorNetwork)
+    tensor_map = merge(a.tensor_map, b.tensor_map)
+    bond_map = Dict{Index, Vector{Symbol}}()
+    for (tid, tensor) in pairs(tensor_map)
+        for bond in inds(tensor)
+            if !haskey(bond_map, bond)
+                bond_map[bond] = [tid]
+            else
+                push!(bond_map[bond], tid)
+            end
+        end
+    end
+    c = TensorNetwork(tensor_map, bond_map)
+
+end
+
+"""
+    tensor_data(tensor::ITensor)
+
+Get the data associated with given tensor
+"""
+function tensor_data(tensor::ITensor)
+    reshape(convert(Array, store(tensor)), Tuple([dim(x) for x in inds(tensor)]))
+end
+
+"""
+    push!(tn::TensorNetwork,
+          indices::Vector{Index},
+          data::Array{T, N}) where {T, N}
+
+Function to add a tensor to the tensor network tensor data and indices
+"""
+function push!(tn::TensorNetwork,
+               indices::Vector{<:Index},
+               data::Array{T, N}) where {T, N}
+    @assert size(data) == Tuple(dim.(indices))
+    data_store = NDTensors.Dense(reshape(data, prod(size(data))))
+    tensor = ITensor(data_store, indices)
+    tid = next_tensor_id()
+    tn.tensor_map[tid] = tensor
+    for bond in indices
+        if haskey(tn.bond_map, bond)
+            push!(tn.bond_map[bond], tid)
+        else
+            tn.bond_map[bond] = [tid]
+        end
+    end
+    tid
+end
+
+"""
+    simple_contraction(tn::TensorNetwork)
+
+Function to perfrom a simple contraction, contracting all tensors in order.
+Only useful for very small networks for testing.
+"""
+function simple_contraction(tn::TensorNetwork)
+    a, state = iterate(tn)
+    for b in iterate(tn, state)
+        a = a * b
+    end
+    a
+end
+
 
 """Tensor network circuit data-structure"""
 mutable struct TensorNetworkCircuit
@@ -29,48 +154,26 @@ mutable struct TensorNetworkCircuit
     end
 end
 
-"""
-    compose(a::TensorNetwork, b::TensorNetwork)
-
-Join the networks together
-"""
-function compose(a::TensorNetwork, b::TensorNetwork)
-    TensorNetwork(vcat(a.data, b.data))
-end
-
-"""
-    tensor_data(tensor::ITensor)
-
-Get the data associated with given tensor
-"""
-function tensor_data(tensor::ITensor)
-    reshape(convert(Array, store(tensor)), Tuple([dim(x) for x in inds(tensor)]))
-end
-
-length(tn::TensorNetwork) = length(tn.data)
-tensor_data(tn::TensorNetwork, i::Int64) = tensor_data(tn.data[i])
-
-
 length(tnc::TensorNetworkCircuit) = length(tnc.tn)
 tensor_data(tnc::TensorNetworkCircuit, i::Int64) = tensor_data(tnc.tn, i)
-
+iterate(tnc::TensorNetworkCircuit, i) = iterate(tnc.tn::TensorNetwork, i)
 
 """
-    add_gate!(tnc::TensorNetworkCircuit,
-              qubits::Vector{Int64},
-              data::Array{T, N}) where {T, N}
+    push!(tnc::TensorNetworkCircuit,
+          qubits::Vector{Int64},
+          data::Array{T, N}) where {T, N}
 
 Function to add a gate to the tensor network circuit given
 the qubits it acts on and an array of the matrix elements
 """
-function add_gate!(tnc::TensorNetworkCircuit,
-                   qubits::Vector{Int64},
-                   data::Array{T, N}) where {T, N}
+function push!(tnc::TensorNetworkCircuit,
+               qubits::Vector{Int64},
+               data::Array{T, N}) where {T, N}
     input_indices = tnc.output_indices[qubits]
     output_indices = [prime(x) for x in input_indices]
     tnc.output_indices[qubits] = output_indices
     data_store = NDTensors.Dense(reshape(data, prod(size(data))))
-    push!(tnc.tn.data, ITensor(data_store, [output_indices..., input_indices...]))
+    push!(tnc.tn, data, [output_indices..., input_indices...])
 end
 
 """
@@ -114,7 +217,6 @@ end
 
 Function to create array of tensors corresponding to the given indices and config string
 """
-
 function create_input_output_tensors(indices::Array{Index, 1}, input::String)
     input_data = Dict{Char, NDTensors.TensorStorage}('0' => NDTensors.Dense([1., 0.]),
                                                      '1' => NDTensors.Dense([0., 1.]),
@@ -159,20 +261,6 @@ function add_output!(tnc::TensorNetworkCircuit, output::Union{String, Nothing}=n
     output_tensors = create_input_output_tensors(tnc.output_indices, output)
 
     tnc.tn = compose(tnc.tn, output_tensors)
-end
-
-"""
-    simple_contraction(tn::TensorNetwork)
-
-Function to perfrom a simple contraction, contracting all tensors in order.
-Only useful for very small networks for testing.
-"""
-function simple_contraction(tn::TensorNetwork)
-    a = tn.data[1]
-    for b in tn.data[2:end]
-        a = a * b
-    end
-    a
 end
 
 simple_contraction(tnc::TensorNetworkCircuit) = simple_contraction(tnc.tn)

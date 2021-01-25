@@ -76,19 +76,3 @@ function use_mock_tensors(tn::TensorNetwork)
     end
     newtn
 end
-
-# using ITensors
-
-# my_mat = CustomTensors.MockTensor{Complex{Float64}}([2,2]);
-# my_mat2 = CustomTensors.MockTensor{Complex{Float64}}([2,4]);
-# is = [Index(2) for i = 1:2]
-# js = [is[1], Index(4)]
-# a_tensor = NDTensors.tensor(my_mat, is);
-# a = ITensor(my_mat, is);
-# b = ITensor(my_mat2, js)
-# # CustomTensors.length(my_mat)
-# # CustomTensors.length(my_mat2)
-# # CustomTensors.size(my_mat)
-# # CustomTensors.size(my_mat2)
-# c = a * b
-# # my_mat = dummy.dummy_array([2,2]);
