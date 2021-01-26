@@ -1,3 +1,4 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 QXSim = "84f0eee1-10ae-40da-994b-b9d0e53829ae"
+QXZoo = "f27fdc93-0c88-4b5a-91cb-e8275adac0f6"

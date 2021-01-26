@@ -1,6 +1,7 @@
 using QXSim
 using Test
+using TestSetExtensions
 
-@testset "QXSim.jl" begin
-    include("test_tn.jl")
+@testset ExtendedTestSet "All QXSim.jl tests" begin
+    @includetests ARGS
 end
