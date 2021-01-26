@@ -36,6 +36,15 @@ function create_qft_circuit(n::Integer)
 end
 
 """
+    create_rqc_circuit(num_qubits::Integer, rows::Int, cols::Int, depth::Int)
+
+Function to create a qft circuit with n qubits
+"""
+function create_rqc_circuit(rows::Int, cols::Int, depth::Int; final_h::Bool=false)
+    return QXZoo.RQC.create_RQC(rows, cols, depth; final_Hadamard_layer=final_h)
+end
+
+"""
     gate_matrix(gate::QXZoo.GateOps.AGateCall)
 
 Function to get the matrix for a gate
