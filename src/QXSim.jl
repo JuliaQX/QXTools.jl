@@ -16,5 +16,4 @@ using .TN
 export generate_dsl_file
 include("dsl/dsl.jl")
 using .DSL
-
 end
