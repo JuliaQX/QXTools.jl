@@ -2,7 +2,7 @@ module Circuits
 
 using QXZoo
 
-export create_test_circuit, create_qft_circuit
+export create_test_circuit, create_qft_circuit, create_ghz_circuit, create_rqc_circuit
 export gate_matrix, gate_qubits
 
 """
@@ -19,6 +19,20 @@ function create_test_circuit()
     QXZoo.Circuit.add_gatecall!(circ, QXZoo.DefaultGates.h(0))
     QXZoo.Circuit.add_gatecall!(circ, QXZoo.DefaultGates.c_x(0, 1))
     QXZoo.Circuit.add_gatecall!(circ, QXZoo.DefaultGates.c_x(1, 2))
+    circ
+end
+
+"""
+    create_tescreate_ghz_circuitt_circuit(n::Int64)
+
+Function to create an n qubit QXZoo ghz state preparation circuit
+"""
+function create_ghz_circuit(n::Int64)
+    circ = QXZoo.Circuit.Circ(n)
+    QXZoo.Circuit.add_gatecall!(circ, QXZoo.DefaultGates.h(1))
+    for i in 1:n-1
+        QXZoo.Circuit.add_gatecall!(circ, QXZoo.DefaultGates.c_x(i, i+1))
+    end
     circ
 end
 
@@ -64,9 +78,9 @@ Function to get the qubit indices that the gate acts on
 """
 function gate_qubits(gate::QXZoo.GateOps.AGateCall)
     if typeof(gate) <: QXZoo.GateOps.GateCall1
-        qubits = [gate.target + 1]
+        qubits = [gate.target]
     elseif typeof(gate) <: QXZoo.GateOps.GateCall2
-        qubits = [gate.target + 1, gate.ctrl + 1]
+        qubits = [gate.target, gate.ctrl]
     end
     qubits
 end

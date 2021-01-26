@@ -1,5 +1,11 @@
 # This file is machine-generated - editing it directly is not advised
 
+[[ArgParse]]
+deps = ["Logging", "TextWrap"]
+git-tree-sha1 = "4a8f4df432fd8e8a96a142c53f9432b9022a92e6"
+uuid = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+version = "1.1.1"
+
 [[ArnoldiMethod]]
 deps = ["DelimitedFiles", "LinearAlgebra", "Random", "SparseArrays", "StaticArrays", "Test"]
 git-tree-sha1 = "2b6845cea546604fb4dca4e31414a6a59d39ddcd"
@@ -255,8 +261,8 @@ deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [[QXZoo]]
-deps = ["DataStructures", "LinearAlgebra", "Memoize", "StaticArrays", "Test", "UUIDs"]
-git-tree-sha1 = "5dbdc0d3e328343c0cb0681da86518727a35193f"
+deps = ["DataStructures", "LinearAlgebra", "Memoize", "Random", "Reexport", "StaticArrays", "Test", "UUIDs"]
+git-tree-sha1 = "275fe2cbf619ff003c414389277d072f5c1937b5"
 repo-rev = "master"
 repo-url = "git@git.ichec.ie:quantex/QXZoo.jl.git"
 uuid = "f27fdc93-0c88-4b5a-91cb-e8275adac0f6"
@@ -269,6 +275,11 @@ uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 [[Random]]
 deps = ["Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
+[[Reexport]]
+git-tree-sha1 = "57d8440b0c7d98fc4f889e478e80f268d534c9d5"
+uuid = "189a3867-3050-52da-a836-e630ba90ab69"
+version = "1.0.0"
 
 [[Requires]]
 deps = ["UUIDs"]
@@ -324,6 +335,11 @@ deps = ["DeepDiffs", "Distributed", "Test"]
 git-tree-sha1 = "3a2919a78b04c29a1a57b05e1618e473162b15d0"
 uuid = "98d24dd4-01ad-11ea-1b02-c9a08f80db04"
 version = "2.0.0"
+
+[[TextWrap]]
+git-tree-sha1 = "9250ef9b01b66667380cf3275b3f7488d0e25faf"
+uuid = "b718987f-49a8-5099-9789-dcd902bef87d"
+version = "1.0.1"
 
 [[TimerOutputs]]
 deps = ["Printf"]
