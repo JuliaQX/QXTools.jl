@@ -40,7 +40,7 @@ end
 
 Function to create a qft circuit with n qubits
 """
-function create_rqc_circuit(rows::Int, cols::Int, depth::Int; final_h::Bool)
+function create_rqc_circuit(rows::Int, cols::Int, depth::Int; final_h::Bool=false)
     return QXZoo.RQC.create_RQC(rows, cols, depth; final_Hadamard_layer=final_h)
 end
 
