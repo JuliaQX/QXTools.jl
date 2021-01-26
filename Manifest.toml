@@ -270,7 +270,7 @@ version = "0.1.0"
 
 [[QXZoo]]
 deps = ["DataStructures", "LinearAlgebra", "Memoize", "Random", "Reexport", "StaticArrays", "Test", "UUIDs"]
-git-tree-sha1 = "275fe2cbf619ff003c414389277d072f5c1937b5"
+git-tree-sha1 = "817abb5a5541d4e6459a4e57b9885f1ff7d964f0"
 repo-rev = "master"
 repo-url = "git@git.ichec.ie:quantex/QXZoo.jl.git"
 uuid = "f27fdc93-0c88-4b5a-91cb-e8275adac0f6"
@@ -371,6 +371,12 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[YAML]]
+deps = ["Base64", "Dates", "Printf"]
+git-tree-sha1 = "78c02bd295bbd0ca330f95e07ccdfcb69f6cbcd4"
+uuid = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
+version = "0.4.6"
 
 [[Zlib_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]

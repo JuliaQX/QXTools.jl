@@ -10,8 +10,8 @@ using ITensors
 import Base: length, size, getindex, copy
 import NDTensors: tensor, contract
 
-export MockTensor, size, length, copy, tensor, contract
-export use_mock_tensors
+export MockTensor, size, length, copy, tensor, contract_tensors
+
 
 """ Tensor store struct that just tracks tensor dimensions"""
 struct MockTensor{Elt} <: NDTensors.TensorStorage{Elt}
@@ -39,11 +39,11 @@ contract(T1::NDTensors.Tensor{Elt, N, StoreT, IndsT},
 Overloaded contract function from NDTensors which implements
 contraction for tensors using MockTensor objects as storage.
 """
-function contract(T1::NDTensors.Tensor{Elt, N, StoreT, IndsT},
-                  labelsT1,
-                  T2::NDTensors.Tensor{Elt, M, StoreT, IndsT},
-                  labelsT2,
-                  labelsR = NDTensors.contract_labels(labelsT1, labelsT2)) where {Elt, N, M, StoreT <: MockTensor, IndsT}
+function mock_contract(T1::NDTensors.Tensor{Elt1, N, StoreT, IndsT},
+                       labelsT1,
+                       T2::NDTensors.Tensor{Elt2, M, StoreT, IndsT},
+                       labelsT2,
+                       labelsR = NDTensors.contract_labels(labelsT1, labelsT2)) where {Elt1, Elt2, N, M, StoreT <: MockTensor, IndsT}
     final_dims = zeros(Int64, length(labelsR))
     T1_dims, T2_dims = size(T1), size(T2)
     final_inds = Array{ITensors.Index}(undef, length(labelsR))
@@ -62,17 +62,23 @@ function contract(T1::NDTensors.Tensor{Elt, N, StoreT, IndsT},
     return NDTensors.Tensor(tensor_store, final_inds)
 end
 
-"""
-    use_mock_tensors(tn::TensorNetwork)
 
-Function to create a copy of the given tensor network with the storage replaced by
-mock tensors
-"""
-function use_mock_tensors(tn::TensorNetwork)
-    new_tensor_map = OrderedDict{Symbol, ITensor}()
-    for (sym, tensor) in pairs(tn)
-        mock_tensor = MockTensor{Float64}(collect(size(tensor_data(tn, sym))))
-        new_tensor_map[sym] = ITensor(mock_tensor, inds(tensor))
+function contract_tensors(A::ITensors.ITensor, B::ITensors.ITensor)
+    (labelsA,labelsB) = ITensors.compute_contraction_labels(inds(A),inds(B))
+    if typeof(store(A)) <: MockTensor && typeof(store(B)) <: MockTensor
+        CT = mock_contract(tensor(A), labelsA, tensor(B), labelsB)
+    else
+        CT = contract(tensor(A), labelsA, tensor(B), labelsB)
     end
-    TensorNetwork(new_tensor_map, copy(tn.bond_map))
+    C = itensor(CT)
+    warnTensorOrder = get_warn_order()
+    if !isnothing(warnTensorOrder) > 0 &&
+        order(C) >= warnTensorOrder
+        #@warn "Contraction resulted in ITensor with $(order(C)) indices, which is greater than or equal to the ITensor order warning threshold $warnTensorOrder. You can modify the threshold with functions like `set_warn_order!(::Int)`, `reset_warn_order!()`, and `disable_warn_order!()`."
+        println("Contraction resulted in ITensor with $(order(C)) indices, which is greater than or equal to the ITensor order warning threshold $warnTensorOrder. You can modify the threshold with functions like `set_warn_order!(::Int)`, `reset_warn_order!()`, and `disable_warn_order!()`.")
+        show(stdout, MIME"text/plain"(), stacktrace())
+        println()
+        end
+    return C
 end
+
