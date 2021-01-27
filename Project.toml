@@ -11,6 +11,7 @@ ITensors = "9136182c-28ba-11e9-034c-db9fb085ebd5"
 JLD = "4138dd39-2aa7-5051-a626-17a0bb65d9c8"
 LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
 NDTensors = "23ae76d9-e61a-49c4-8f12-3f1a16adf9cf"
+QXGraph = "b15f1ded-d19a-4aca-a940-1991fcfc7750"
 QXZoo = "f27fdc93-0c88-4b5a-91cb-e8275adac0f6"
 TestSetExtensions = "98d24dd4-01ad-11ea-1b02-c9a08f80db04"
 
