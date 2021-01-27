@@ -16,9 +16,9 @@ Function to create a 3 qubit QXZoo ghz state preparation circuit useful for test
 """
 function create_test_circuit()
     circ = QXZoo.Circuit.Circ(3)
-    QXZoo.Circuit.add_gatecall!(circ, QXZoo.DefaultGates.h(0))
-    QXZoo.Circuit.add_gatecall!(circ, QXZoo.DefaultGates.c_x(0, 1))
+    QXZoo.Circuit.add_gatecall!(circ, QXZoo.DefaultGates.h(1))
     QXZoo.Circuit.add_gatecall!(circ, QXZoo.DefaultGates.c_x(1, 2))
+    QXZoo.Circuit.add_gatecall!(circ, QXZoo.DefaultGates.c_x(2, 3))
     circ
 end
 

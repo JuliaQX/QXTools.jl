@@ -4,6 +4,7 @@ using ITensors
 # TensorNetwork struct and public functions
 export next_tensor_id
 export TensorNetwork, bonds, simple_contraction, tensor_data, neighbours
+export contract_tn!
 
 const qxsim_ids = Dict{Symbol, Int64}(:tensor_id => 0)
 @noinline next_tensor_id() = begin qxsim_ids[:tensor_id] += 1; Symbol("t$(qxsim_ids[:tensor_id])") end
@@ -151,4 +152,51 @@ Only useful for very small networks for testing.
 """
 function simple_contraction(tn::TensorNetwork)
     reduce(*, tn, init=ITensor(1.))
+end
+
+
+"""
+    contract_pair(tn::TensorNetwork, A_id::Symbol, B_id::Symbol)
+
+Contract the tensors in 'tn' with ids 'A_id' and 'B_id'.
+"""
+function contract_pair(tn::TensorNetwork, A_id::Symbol, B_id::Symbol)
+    # Get and contract the tensors A and B to create tensor C.
+    A = tn.tensor_map[A_id]
+    B = tn.tensor_map[B_id]
+    C_id = next_tensor_id()
+    C = A * B
+
+    # Remove the contracted indices from the bond map in tn. Also, replace all references
+    # in tn to tensors A and B with a reference to tensor C.
+    for ind in commoninds(A, B)
+        delete!(tn.bond_map, ind)
+    end
+    for ind in noncommoninds(A, B)
+        tn.bond_map[ind] = replace(tn.bond_map[ind], A_id=>C_id, B_id=>C_id)
+    end
+
+    # Add tensor C to the tn and remove both A and B.
+    tn.tensor_map[C_id] = C
+    delete!(tn.tensor_map, A_id); delete!(tn.tensor_map, B_id)
+    C_id
+end
+
+
+"""
+    contract_tn!(tn::TensorNetwork, plan)
+
+Contract the indices of 'tn' according to 'plan'.
+"""
+function contract_tn!(tn::TensorNetwork, plan::Array{<:Index, 1})
+    # Contract each index in the contraction plan while skipping indices that are not shared
+    # by exactly two tensors in tn. (i.e. open indices and hyper edges are skipped.)
+    for index in plan
+        tensor_pair = tn.bond_map[index]
+        if length(tensor_pair) == 2
+            contract_pair(tn, tensor_pair...)
+        end
+    end
+
+    first(tn.tensor_map)[2]
 end

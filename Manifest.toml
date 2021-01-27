@@ -260,6 +260,14 @@ uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
+[[QXGraph]]
+deps = ["LightGraphs"]
+git-tree-sha1 = "d49c0146d66869aacf67a1599620e020c5b643be"
+repo-rev = "master"
+repo-url = "git@git.ichec.ie:quantex/qxgraph.git"
+uuid = "b15f1ded-d19a-4aca-a940-1991fcfc7750"
+version = "0.1.0"
+
 [[QXZoo]]
 deps = ["DataStructures", "LinearAlgebra", "Memoize", "Random", "Reexport", "StaticArrays", "Test", "UUIDs"]
 git-tree-sha1 = "275fe2cbf619ff003c414389277d072f5c1937b5"
