@@ -4,7 +4,8 @@ using ITensors
 # TensorNetwork struct and public functions
 export next_tensor_id
 export TensorNetwork, bonds, simple_contraction, tensor_data, neighbours
-export contract_tn!
+export contract_tn!, contract_pair!
+export decompose_tensor!, replace_with_svd!
 
 const qxsim_ids = Dict{Symbol, Int64}(:tensor_id => 0)
 @noinline next_tensor_id() = begin qxsim_ids[:tensor_id] += 1; Symbol("t$(qxsim_ids[:tensor_id])") end
@@ -128,12 +129,12 @@ Function to add a tensor
 """
 function Base.push!(tn::TensorNetwork,
                tensor::ITensor{N}) where {N}
-    @assert size(data) == Tuple(dim.(indices))
-    data_store = NDTensors.Dense(reshape(data, prod(size(data))))
-    tensor = ITensor(data_store, indices)
+    # @assert size(data) == Tuple(dim.(indices))
+    # data_store = NDTensors.Dense(reshape(data, prod(size(data))))
+    # tensor = ITensor(data_store, indices)
     tid = next_tensor_id()
     tn.tensor_map[tid] = tensor
-    for bond in indices
+    for bond in inds(tensor)
         if haskey(tn.bond_map, bond)
             push!(tn.bond_map[bond], tid)
         else
@@ -160,7 +161,7 @@ end
 
 Contract the tensors in 'tn' with ids 'A_id' and 'B_id'.
 """
-function contract_pair(tn::TensorNetwork, A_id::Symbol, B_id::Symbol)
+function contract_pair!(tn::TensorNetwork, A_id::Symbol, B_id::Symbol)
     # Get and contract the tensors A and B to create tensor C.
     A = tn.tensor_map[A_id]
     B = tn.tensor_map[B_id]
@@ -194,9 +195,89 @@ function contract_tn!(tn::TensorNetwork, plan::Array{<:Index, 1})
     for index in plan
         tensor_pair = tn.bond_map[index]
         if length(tensor_pair) == 2
-            contract_pair(tn, tensor_pair...)
+            contract_pair!(tn, tensor_pair...)
         end
     end
 
     first(tn.tensor_map)[2]
+end
+
+
+"""
+    decompose_tensor!(tn::TensorNetwork,
+                      tensor_id::Symbol,
+                      left_indices::Array{<:Index, 1};
+                      contract_S_with::Symbol=:V,
+                      kwargs...)
+
+Function to decompose a tensor in a tensor network using svd.
+
+# Keywords
+- `contract_S_with::Symbol=:V`: the maxtrix which should absorb the matrix of singular values
+- `maxdim::Int`: the maximum number of singular values to keep.
+- `mindim::Int`: the minimum number of singular values to keep.
+- `cutoff::Float64`: set the desired truncation error of the SVD.
+"""
+function decompose_tensor!(tn::TensorNetwork,
+                           tensor_id::Symbol,
+                           left_indices::Array{<:Index, 1};
+                           contract_S_with::Symbol=:V,
+                           kwargs...)
+    # Decompose the tensor into its svd factors.
+    U_id, S_id, V_id = replace_with_svd!(tn, tensor_id, left_indices; kwargs)
+
+    # Absorb the singular values tensor into eith U or V.
+    if contract_S_with == :V_id
+        return U_id, contract_pair!(tn, S_id, V_id)
+    else
+        return contract_pair!(tn, S_id, U_id), V_id
+    end
+end
+
+
+"""
+    replace_with_svd!(tn::TensorNetwork, 
+                      tensor_id::Symbol,
+                      left_indices::Array{<:Index, 1};
+                      kwargs...)
+
+Function to replace a tensor in a tensor network with its svd.
+
+The indices contained in 'left_indices' are considered the row indices of the tensor when
+the svd is performed.
+
+# Keywords
+- `maxdim::Int`: the maximum number of singular values to keep.
+- `mindim::Int`: the minimum number of singular values to keep.
+- `cutoff::Float64`: set the desired truncation error of the SVD.
+"""
+function replace_with_svd!(tn::TensorNetwork, 
+                            tensor_id::Symbol,
+                            left_indices::Array{<:Index, 1};
+                            kwargs...)
+    # Get the tensor and decompose it.
+    tensor = tn.tensor_map[tensor_id]
+    U, S, V = svd(tensor, left_indices; kwargs, use_absolute_cutoff=true)
+
+    # Remove the original tensor and add its svd factors to the network.
+    delete!(tn, tensor_id)
+    U_id = push!(tn, U)
+    S_id = push!(tn, S)
+    V_id = push!(tn, V)
+    U_id, S_id, V_id
+end
+
+
+"""
+    delete!(tn::TensorNetwork, tensor_id::Symbol)
+
+Function to remove a tensor from a tensor network.
+"""
+function Base.delete!(tn::TensorNetwork, tensor_id::Symbol)
+    tensor = tn.tensor_map[tensor_id]
+    for index in inds(tensor)
+        # remove tensor_id from tn.bond_map[index]
+        filter!(id -> id ≠ tensor_id, tn.bond_map[index])
+    end
+    delete!(tn.tensor_map, tensor_id)
 end

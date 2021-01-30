@@ -88,12 +88,12 @@ for the remaining tensor network.
 """
 function contraction_scheme(tn::TensorNetwork, num::Integer; 
                             time::Integer=120,
-                            order::Symbol=:_,
+                            order::Symbol=:min_fill,
                             score_function::Symbol=:direct_treewidth)
     # Create the line graph for the given tn and pass it to quickbb to find a contraction 
     # plan.
     lg, symbol_map = convert_to_line_graph(tn)
-    tw, plan = qxg.quickbb(lg; time=time)
+    tw, plan = qxg.quickbb(lg; time=time, order=order)
 
     # Use the greedy treewidth deletion algorithm to select indices in tn to slice.
     scheme = qxg.greedy_treewidth_deletion(lg, num; 
@@ -102,5 +102,7 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
     sliced_lg, edges_to_slice, modified_plan, new_tw = scheme
 
     # Convert the contraction plan to an array of Index structs before returning.
-    edges_to_slice, [symbol_map[index_symbol] for index_symbol in modified_plan]
+    modified_plan = [symbol_map[index_symbol] for index_symbol in modified_plan]
+    edges_to_slice = [symbol_map[index_symbol] for index_symbol in edges_to_slice]
+    edges_to_slice, modified_plan
 end

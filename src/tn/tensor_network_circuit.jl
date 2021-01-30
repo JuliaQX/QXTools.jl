@@ -5,7 +5,7 @@ using ..Circuits
 
 # TensorNetworkCircuit struct and public functions
 export TensorNetworkCircuit, add_input!, add_output!, convert_to_tnc, qubits
-export quickbb_contraction_plan, contract_tn!, contraction_scheme
+export quickbb_contraction_plan, contract_tn!, contraction_scheme, decompose_tensor!
 
 """Tensor network circuit data-structure"""
 mutable struct TensorNetworkCircuit
@@ -153,4 +153,12 @@ function contraction_scheme(tnc::TensorNetworkCircuit, num::Integer;
                             order::Symbol=:_,
                             score_function::Symbol=:direct_treewidth)
     contraction_scheme(tnc.tn, num; time=time, order=order, score_function=score_function)
+end
+
+function decompose_tensor!(tnc::TensorNetworkCircuit,
+                            tensor_id::Symbol,
+                            left_indices::Array{<:Index, 1};
+                            contract_S_with::Symbol=:V,
+                            kwargs...)
+    decompose_tensor!(tnc.tn, tensor_id, left_indices; contract_S_with, kwargs...)
 end
