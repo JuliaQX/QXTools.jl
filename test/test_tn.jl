@@ -35,6 +35,12 @@ using ITensors
 
     @test length(neighbours(tn, tensor_b)) == 1
     @test length(neighbours(tn3, tensor_b)) == 2
+
+    # Test delete!
+    delete!(tn, tensor_a)
+    @test length(tn) == 1
+    @test haskey(tn.tensor_map, tensor_a) == false
+    @test length(neighbours(tn, tensor_b)) == 0
 end
 
 @testset "Test circuit to Tensor Network Circuit conversion" begin
@@ -140,4 +146,38 @@ end
     edges_to_slice, plan = QXSim.contraction_scheme(tnc, 3)
     @test length(edges_to_slice) == 3 # Should have 3 edges to slice
     @test length(plan) == length(tnc.tn.bond_map) - 3 # modified plan should be smaller.
+end
+
+@testset "Test tensor decomnposition" begin
+    # prepare the circuit.
+    circ = QXSim.create_test_circuit()
+    tnc = convert_to_tnc(circ, no_input=false, no_output=false)
+    @assert length(tnc.tn.tensor_map) == 9
+
+    # Find a tensor with four indices to decompose.
+    t_id = :_
+    for id in keys(tnc.tn.tensor_map)
+        if length(inds(tnc.tn.tensor_map[id])) == 4
+            t_id = id
+            break
+        end
+    end
+    @assert length(inds(tnc.tn.tensor_map[t_id])) == 4
+    left_inds = collect(inds(tnc.tn.tensor_map[t_id]))
+    left_inds = left_inds[1:2]
+
+    # test svd
+    Uid, Sid, Vid = QXSim.replace_with_svd!(tnc.tn, t_id, left_inds;
+                                            maxdim=2,
+                                            cutoff=1e-13)
+    @test length(tnc.tn.tensor_map) == 9 + 2
+
+    SVid = QXSim.contract_pair!(tnc.tn, Sid, Vid)
+    USVid = QXSim.contract_pair!(tnc.tn, Uid, SVid)
+    @assert length(tnc.tn.tensor_map) == 9
+
+    Uid, Vid = QXSim.decompose_tensor!(tnc, USVid, left_inds;
+                                        maxdim=2,
+                                        cutoff=1e-13)
+    @test length(tnc.tn.tensor_map) == 9 + 1
 end
