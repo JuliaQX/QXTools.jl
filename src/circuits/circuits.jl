@@ -50,12 +50,20 @@ function create_qft_circuit(n::Integer)
 end
 
 """
-    create_rqc_circuit(num_qubits::Integer, rows::Int, cols::Int, depth::Int)
+    create_rqc_circuit(rows::Int,
+                       cols::Int,
+                       depth::Int,
+                       seed::Union{Int, Nothing}=nothing;
+                       final_h::Bool=false)
 
 Function to create a qft circuit with n qubits
 """
-function create_rqc_circuit(rows::Int, cols::Int, depth::Int; final_h::Bool=false)
-    return QXZoo.RQC.create_RQC(rows, cols, depth; final_Hadamard_layer=final_h)
+function create_rqc_circuit(rows::Int,
+                            cols::Int,
+                            depth::Int,
+                            seed::Union{Int, Nothing}=nothing;
+                            final_h::Bool=false)
+    return QXZoo.RQC.create_RQC(rows, cols, depth, seed; final_Hadamard_layer=final_h)
 end
 
 """
@@ -64,11 +72,7 @@ end
 Function to get the matrix for a gate
 """
 function gate_matrix(gate::QXZoo.GateOps.AGateCall)
-    mat_elements = convert(Array{ComplexF64}, QXZoo.GateMap.gates[gate.gate_symbol]())
-    # TODO: find better way of identifying multi qubit gates
-    dims = size(mat_elements)
-    new_dims = Tuple(vcat([ones(Int64, convert(Int64, log2(x))) * 2 for x in dims]...))
-    reshape(mat_elements, new_dims)
+    convert(Array{ComplexF64}, QXZoo.GateMap.gates[gate.gate_symbol]())
 end
 
 """

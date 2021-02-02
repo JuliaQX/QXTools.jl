@@ -43,6 +43,34 @@ using ITensors
     @test length(neighbours(tn, tensor_b)) == 0
 end
 
+@testset "Test TensorNetworkCircuit struct and interface functions" begin
+    # create empty tensor network
+    tnc = TensorNetworkCircuit(2)
+
+    @test qubits(tnc) == 2
+    @test length(tnc) == 0
+
+    # add single qubit gate
+    push!(tnc, [1], rand(2, 2))
+    @test length(tnc) == 1
+
+    # add two qubit gate
+    push!(tnc, [1, 2], rand(4, 4))
+    @test length(tnc) == 2
+
+    # adding input
+    add_input!(tnc, "01")
+    @test length(tnc) == 4
+    tensor_data(tnc, QXSim.input_tensors(tnc)[1]) == [1., 0.]
+    tensor_data(tnc, QXSim.input_tensors(tnc)[2]) == [0., 1.]
+
+    # adding output
+    add_output!(tnc, "+-")
+    @test length(tnc) == 6
+    tensor_data(tnc, QXSim.output_tensors(tnc)[1]) == [1., 1.]/sqrt(2)
+    tensor_data(tnc, QXSim.output_tensors(tnc)[2]) == [1., -1.]/sqrt(2)
+end
+
 @testset "Test circuit to Tensor Network Circuit conversion" begin
     circ = QXSim.create_test_circuit()
 
@@ -113,7 +141,7 @@ end
     a_inds = Index.(dim)
     a = ITensor(a_store, a_inds)
     b = ITensor(b_store, [a_inds[1], Index(2), Index(4)])
-    c = a * b
+    c = contract_tensors(a, b)
     @test length(store(c)) == dim[2] * 2 * 4
 
     # test replacing all stores with mock tensor in a tensor network
