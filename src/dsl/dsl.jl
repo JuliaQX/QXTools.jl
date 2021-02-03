@@ -20,13 +20,9 @@ and also prepares the data file
 function write_dsl_load_header(tnc::TensorNetworkCircuit, dsl_filename::String, data_filename::String)
     # create a tensor cache for saving intitial tensor data
     tc = TensorCache()
-    # tensor_symbols = collect(keys(tnc))
-    # data_symbols = Dict{Symbol, Symbol}()
     # iterate over tensors and add to TensorCache
     open(dsl_filename, "w") do io
-        for (i, tensor_symbol) in enumerate(output_tensors(tnc))
-            write(io, "load $tensor_symbol \$o$i\n")
-        end
+        write(io, "outputs $(qubits(tnc))\n")
         for (tensor_symbol, tensor) in pairs(tnc)
             if !(tensor_symbol in output_tensors(tnc))
                 data_symbol = push!(tc, tensor_data(tensor))
@@ -62,8 +58,13 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
 
     write_dsl_load_header(tnc, dsl_filename, data_filename)
 
+
     # wr create a network with mocked tensors
     tn_mock = use_mock_tensors(tnc.tn)
+
+    for (i, tensor_sym) in enumerate(output_tensors(tnc))
+        replace_tensor_symbol!(tn_mock, tensor_sym, Symbol("\$o$i"))
+    end
 
     # create views on tensors
     # @assert all([!(x in output_indices(tnc)) for x in sliced_bonds]) "Cannot slice output indices"
@@ -72,9 +73,10 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
             slice_tensors = tn_mock[slice_bond]
             for tensor_sym in slice_tensors
                 position_of_index =  findfirst(x -> x == slice_bond, inds(tn_mock[tensor_sym]))
-                new_sym = Symbol("$(tensor_sym)_v$i")
+                new_sym = Symbol("$(tensor_sym)_\$v$i")
                 replace_tensor_symbol!(tn_mock, tensor_sym, new_sym)
                 write(io, "view $new_sym $tensor_sym $position_of_index \$v$(i)\n")
+                write(io, "del $tensor_sym\n")
             end
         end
     end
@@ -144,7 +146,7 @@ function generate_parameter_file(tnc::TensorNetworkCircuit,
         partition_dims["v$i"] = dim(sliced_bond)
     end
     partition_parameters = Dict("parameters" => partition_dims)
-    config = Dict("partitions" => partition_parameters, "amplitudes" => amplitude_strs)
+    config = Dict("partitions" => partition_parameters, "amplitudes" => unique(amplitude_strs))
     YAML.write_file("$(filename_prefix).yml", config)
 end
 
