@@ -7,10 +7,10 @@ uuid = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 version = "1.1.1"
 
 [[ArnoldiMethod]]
-deps = ["DelimitedFiles", "LinearAlgebra", "Random", "SparseArrays", "StaticArrays", "Test"]
-git-tree-sha1 = "2b6845cea546604fb4dca4e31414a6a59d39ddcd"
+deps = ["LinearAlgebra", "Random", "StaticArrays"]
+git-tree-sha1 = "f87e559f87a45bece9c9ed97458d3afe98b1ebb9"
 uuid = "ec485272-7323-5ecc-a04f-4719b315124d"
-version = "0.0.4"
+version = "0.1.0"
 
 [[Artifacts]]
 deps = ["Pkg"]
@@ -47,9 +47,9 @@ version = "1.2.0"
 
 [[CoverageTools]]
 deps = ["LibGit2"]
-git-tree-sha1 = "96d7daa2417dd570066969e6da035eee072f906c"
+git-tree-sha1 = "08b72d2f2154e33dc2aeb1bfcd4a83cb283abd4f"
 uuid = "c36e975a-824b-4404-a568-ef97ca766997"
-version = "1.2.1"
+version = "1.2.2"
 
 [[DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -72,9 +72,9 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[Dictionaries]]
 deps = ["Indexing", "Random"]
-git-tree-sha1 = "73ddbf30bc6488a72c4a7a05b54f21b59c6c74fb"
+git-tree-sha1 = "2a08bdd177e0f7653661a4c0a1b0cf37b2690dfd"
 uuid = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
-version = "0.3.6"
+version = "0.3.7"
 
 [[Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
@@ -88,9 +88,9 @@ version = "1.4.5"
 
 [[HDF5]]
 deps = ["Blosc", "Compat", "HDF5_jll", "Libdl", "Mmap", "Random", "Requires"]
-git-tree-sha1 = "8be8b31df938483ba2ab27f38a8bc91a9e43ae92"
+git-tree-sha1 = "947d696a6b6dbc14018a1668c4724fdc6236a3d3"
 uuid = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
-version = "0.14.3"
+version = "0.15.2"
 
 [[HDF5_jll]]
 deps = ["Artifacts", "JLLWrappers", "LibCURL_jll", "Libdl", "OpenSSL_jll", "Pkg", "Zlib_jll"]
@@ -105,10 +105,10 @@ uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 version = "0.9.2"
 
 [[ITensors]]
-deps = ["Compat", "HDF5", "KrylovKit", "LinearAlgebra", "NDTensors", "PackageCompiler", "Printf", "Random", "StaticArrays", "TimerOutputs"]
-git-tree-sha1 = "142d49aae3a50adb137c29ba37a13ea04423641b"
+deps = ["Compat", "HDF5", "KrylovKit", "LinearAlgebra", "NDTensors", "PackageCompiler", "Pkg", "Printf", "Random", "StaticArrays", "TimerOutputs"]
+git-tree-sha1 = "323623f62047047641a37555b24b73fcafff75b0"
 uuid = "9136182c-28ba-11e9-034c-db9fb085ebd5"
-version = "0.1.35"
+version = "0.1.38"
 
 [[Indexing]]
 deps = ["Test"]
@@ -175,9 +175,9 @@ uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 
 [[LightGraphs]]
 deps = ["ArnoldiMethod", "DataStructures", "Distributed", "Inflate", "LinearAlgebra", "Random", "SharedArrays", "SimpleTraits", "SparseArrays", "Statistics"]
-git-tree-sha1 = "677464beb4a91772d151ee62ea5e181d4b7f50ec"
+git-tree-sha1 = "432428df5f360964040ed60418dd5601ecd240b6"
 uuid = "093fc24a-ae57-5d10-9952-331d41423f4d"
-version = "1.3.4"
+version = "1.3.5"
 
 [[LinearAlgebra]]
 deps = ["Libdl"]
@@ -225,9 +225,9 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[NDTensors]]
 deps = ["Compat", "Dictionaries", "HDF5", "LinearAlgebra", "Random", "Requires", "StaticArrays", "Strided", "TimerOutputs", "TupleTools"]
-git-tree-sha1 = "b7731352406eed43a135140d5951118ad27c8be1"
+git-tree-sha1 = "11bae733ec18ff1b01765316e8807ea21f94239f"
 uuid = "23ae76d9-e61a-49c4-8f12-3f1a16adf9cf"
-version = "0.1.21"
+version = "0.1.25"
 
 [[OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -236,9 +236,9 @@ uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
 version = "1.1.1+6"
 
 [[OrderedCollections]]
-git-tree-sha1 = "cf59cfed2e2c12e8a2ff0a4f1e9b2cd8650da6db"
+git-tree-sha1 = "d45739abcfc03b51f6a42712894a593f74c80a23"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-version = "1.3.2"
+version = "1.3.3"
 
 [[PackageCompiler]]
 deps = ["Libdl", "Pkg", "UUIDs"]
@@ -262,7 +262,7 @@ uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [[QXGraph]]
 deps = ["LightGraphs"]
-git-tree-sha1 = "d49c0146d66869aacf67a1599620e020c5b643be"
+git-tree-sha1 = "aca8604ab3c6e3ccbcc07871ce3130d40cd4d7ec"
 repo-rev = "master"
 repo-url = "git@git.ichec.ie:quantex/qxgraph.git"
 uuid = "b15f1ded-d19a-4aca-a940-1991fcfc7750"
@@ -270,7 +270,7 @@ version = "0.1.0"
 
 [[QXZoo]]
 deps = ["DataStructures", "LinearAlgebra", "Memoize", "Random", "Reexport", "StaticArrays", "Test", "UUIDs"]
-git-tree-sha1 = "817abb5a5541d4e6459a4e57b9885f1ff7d964f0"
+git-tree-sha1 = "4bff799f9caabec12c93021200fc6bf6fc3f3248"
 repo-rev = "master"
 repo-url = "git@git.ichec.ie:quantex/QXZoo.jl.git"
 uuid = "f27fdc93-0c88-4b5a-91cb-e8275adac0f6"
@@ -386,9 +386,9 @@ version = "1.2.11+18"
 
 [[Zstd_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "6f1abcb0c44f184690912aa4b0ba861dd64f11b9"
+git-tree-sha1 = "2c1332c54931e83f8f94d310fa447fd743e8d600"
 uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
-version = "1.4.5+2"
+version = "1.4.8+0"
 
 [[nghttp2_jll]]
 deps = ["Libdl", "Pkg"]

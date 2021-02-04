@@ -1,10 +1,11 @@
 using QXSim
+using QXSim.Circuits
 using ArgParse
 using Logging
 
 function parse_commandline(ARGS)
     s = ArgParseSettings()
-    @add_arg_table s begin
+    @add_arg_table! s begin
         "--rows", "-r"
             help = "Number of rows"
             default = 3
@@ -23,8 +24,7 @@ function parse_commandline(ARGS)
             arg_type = Int64
         "--amplitudes", "-a"
             help = "Number of amplitudes"
-            default = 4
-            arg_type = Int64
+            default = nothing
         "--seed"
             help = "Seed to use for both circuit and amplitude selection"
             default = nothing
@@ -47,6 +47,9 @@ function main(ARGS)
     depth = parsed_args["depth"]
     number_bonds_to_slice = parsed_args["sliced_bonds"]
     num_amplitudes = parsed_args["amplitudes"]
+    if num_amplitudes !== nothing
+        num_amplitudes = parse(Int64, num_amplitudes)
+    end
     output_prefix = parsed_args["prefix"]
     seed = parsed_args["seed"]
     if seed !== nothing
@@ -55,7 +58,7 @@ function main(ARGS)
     verbose = parsed_args["verbose"]
 
     @info("Create circuit with $(rows * cols) qubits")
-    circ = QXSim.create_rqc_circuit(rows, cols, depth, seed)
+    circ = create_rqc_circuit(rows, cols, depth, seed)
     @info("Circuit created with $(circ.circ_ops.len) gates")
 
     generate_simulation_files(circ,

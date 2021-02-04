@@ -5,8 +5,8 @@ using ..Circuits
 
 # TensorNetworkCircuit struct and public functions
 export TensorNetworkCircuit, add_input!, add_output!, convert_to_tnc, qubits
-export quickbb_contraction_plan, contract_tn!, contraction_scheme, decompose_tensor!
-export input_tensors, output_tensors, input_indices, output_indices
+export contract_tn!, decompose_tensor!
+export input_tensors, output_tensors, input_indices, output_indices, single_amplitude
 
 const input_output_tensors = Dict{Char,Array{Float64, 1}}('0' => [1., 0.],
                                                           '1' => [0., 1.],
@@ -21,23 +21,43 @@ mutable struct TensorNetworkCircuit
     input_tensors::Array{Union{Symbol, Nothing}, 1}
     output_tensors::Array{Union{Symbol, Nothing}, 1}
     tn::TensorNetwork
-
-    function TensorNetworkCircuit(qubits::Int64)
-        input_indices = [Index(2, tags="Qubit $i,Hyp 1") for i in 1:qubits]
-        output_indices = copy(input_indices)
-        input_tensors = Array{Union{Symbol, Nothing}, 1}(nothing, qubits)
-        output_tensors = Array{Union{Symbol, Nothing}, 1}(nothing, qubits)
-        new(qubits, input_indices, output_indices, input_tensors, output_tensors, TensorNetwork())
-    end
 end
 
-Base.eltype(tnc::TensorNetworkCircuit) = ITensor
+function TensorNetworkCircuit(qubits::Int64)
+    input_indices = [Index(2, tags="Qubit $i,Hyp 1") for i in 1:qubits]
+    output_indices = copy(input_indices)
+    input_tensors = Array{Union{Symbol, Nothing}, 1}(nothing, qubits)
+    output_tensors = Array{Union{Symbol, Nothing}, 1}(nothing, qubits)
+    TensorNetworkCircuit(qubits, input_indices, output_indices, input_tensors, output_tensors, TensorNetwork())
+end
+
+function Base.copy(tnc::TensorNetworkCircuit)
+    tn = TensorNetwork()    
+    f = x -> x === nothing ? nothing : push!(tn, tnc[x])
+    my_input_tensors = convert(Array{Union{Symbol, Nothing}}, f.(input_tensors(tnc)))
+    my_output_tensors = convert(Array{Union{Symbol, Nothing}}, f.(output_tensors(tnc)))
+    for x in keys(tnc)
+        if !(x in input_tensors(tnc)) && !(x in output_tensors(tnc))
+            push!(tn, tnc[x])
+        end
+    end
+
+    TensorNetworkCircuit(qubits(tnc),
+                         copy(input_indices(tnc)),
+                         copy(output_indices(tnc)),
+                         my_input_tensors,
+                         my_output_tensors,
+                         tn)
+end
+
+Base.eltype(::TensorNetworkCircuit) = ITensor
 Base.getindex(tnc::TensorNetworkCircuit, i::Symbol) = tnc.tn[i]
 Base.getindex(tnc::TensorNetworkCircuit, i::T) where T <: Index = tnc.tn[i]
 Base.iterate(tnc::TensorNetworkCircuit) = iterate(values(tnc))
 Base.iterate(tnc::TensorNetworkCircuit, i) = iterate(values(tnc), i)
 Base.keys(tnc::TensorNetworkCircuit) = keys(tnc.tn)
 Base.length(tnc::TensorNetworkCircuit) = length(tnc.tn)
+Base.show(io::IO, ::MIME"text/plain", tnc::TensorNetworkCircuit) = print(io, "TensorNetworkCircuit(qubits => $(qubits(tnc)), gates => $(length(tnc)))")
 Base.values(tnc::TensorNetworkCircuit) = values(tnc.tn)
 
 input_tensors(tnc::TensorNetworkCircuit) = tnc.input_tensors
@@ -47,6 +67,7 @@ output_indices(tnc::TensorNetworkCircuit) = tnc.output_indices
 bonds(tnc::TensorNetworkCircuit) = bonds(tnc.tn)
 qubits(tnc::TensorNetworkCircuit) = tnc.qubits
 tensor_data(tnc::TensorNetworkCircuit, i) = tensor_data(tnc.tn, i)
+
 
 """
     push!(tnc::TensorNetworkCircuit,
@@ -78,6 +99,17 @@ function Base.push!(tnc::TensorNetworkCircuit,
 end
 
 Base.push!(tnc::TensorNetworkCircuit, args...) = Base.push!(tnc.tn, args...)
+
+"""
+    delete!(tnc::TensorNetworkCircuit, tensor_id::Symbol)
+
+Function to remove a tensor from a tensor network circuit.
+"""
+function Base.delete!(tnc::TensorNetworkCircuit, tensor_id::Symbol)
+    replace!(tnc.input_tensors, tensor_id => nothing)
+    replace!(tnc.output_tensors, tensor_id => nothing)
+    delete!(tnc.tn, tensor_id)
+end
 
 """
 _convert_to_tnc(circ::QXZoo.Circuit.Circ)
@@ -120,8 +152,11 @@ end
 Function to add a single input tensor to the tensor network circuit at the given position
 """
 function push_input!(tnc::TensorNetworkCircuit, tensor::Array{Elt, 1}, pos::Int64) where Elt
-    @assert tnc.input_tensors[pos] === nothing "There is already an input tensor at position $pos"
     index = tnc.input_indices[pos]
+    tensor_sym = tnc.input_tensors[pos]
+    if tensor_sym !== nothing
+        delete!(tnc, tensor_sym)
+    end
     tnc.input_tensors[pos] = push!(tnc, [index], tensor)
 end
 
@@ -131,9 +166,12 @@ end
 Function to add a single output tensor to the tensor network circuit at the given position
 """
 function push_output!(tnc::TensorNetworkCircuit, tensor::Array{Elt, 1}, pos::Int64) where Elt
-    @assert tnc.output_tensors[pos] === nothing "There is already an input tensor at position $pos"
     index = tnc.output_indices[pos]
-    tnc.output_tensors[pos] = push!(tnc, [index], tensor)
+    tensor_sym = tnc.output_tensors[pos]
+    if tensor_sym !== nothing
+        delete!(tnc, tensor_sym)
+    end
+    tnc.output_tensors[pos] = push!(tnc, [index], tensor)    
 end
 
 """
@@ -142,7 +180,6 @@ end
 Function to add input tensors to the circuit
 """
 function add_input!(tnc::TensorNetworkCircuit, input::Union{String, Nothing}=nothing)
-    @assert all(tnc.input_tensors .=== nothing) "Circuit already has input tensors"
     if input === nothing input = "0"^qubits(tnc) end
     [push_input!(tnc, input_output_tensors[input[pos]], pos) for pos in 1:qubits(tnc)]
 end
@@ -152,13 +189,14 @@ end
 
 Function to add output tensors to the circuit
 """
-function add_output!(tnc::TensorNetworkCircuit, output::Union{String, Nothing}=nothing)
-    @assert all(tnc.output_tensors .=== nothing) "Circuit already has output tensors"
+function add_output!(tnc::TensorNetworkCircuit, output::Union{String, Nothing}=nothing)    
     if output === nothing output = "0"^qubits(tnc) end
     [push_output!(tnc, input_output_tensors[output[pos]], pos) for pos in 1:qubits(tnc)]
 end
 
 contract_tn!(tnc::TensorNetworkCircuit, plan) = contract_tn!(tnc.tn, plan)
+
+contract_tn(tnc::TensorNetworkCircuit, plan) = contract_tn!(copy(tnc), plan)
 
 function quickbb_contraction_plan(tnc::TensorNetworkCircuit; 
                                   time::Integer=120, 
@@ -178,3 +216,13 @@ function decompose_tensor!(tnc::TensorNetworkCircuit, args...; kwargs...)
 end
 
 simple_contraction(tnc::TensorNetworkCircuit) = simple_contraction(tnc.tn)
+
+
+function single_amplitude(tnc::TensorNetworkCircuit, plan::Array{<:Index, 1}, amplitude::Union{String, Nothing}=nothing)
+    sim_tnc = copy(tnc)
+    add_output!(sim_tnc, amplitude)
+    output = contract_tn!(sim_tnc, plan)
+    
+    store(output)[1]
+end
+

@@ -24,6 +24,7 @@
     ##
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
+    - ssh-keyscan git.ichec.ie >> ~/.ssh/known_hosts
   script:
     - |
       julia --project=@. -e '
@@ -43,6 +44,14 @@
         @printf "Test coverage %.2f%%\n" 100c / t'
 Julia 1.5:
   image: julia:1.5
+  tags:
+    - docker
+  extends:
+    - .script
+    - .coverage
+
+Julia 1.6:
+  image: julia:1.6
   tags:
     - docker
   extends:

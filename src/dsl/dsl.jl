@@ -1,12 +1,9 @@
-module DSL
-
 include("tensor_cache.jl")
 
 using ITensors
 using YAML
 using JLD
 using Random
-using ..TN
 
 export generate_dsl_files, generate_parameter_file
 
@@ -121,12 +118,11 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
     nothing
 end
 
-
-"""
+    """
     generate_parameter_file(tnc::TensorNetworkCircuit,
                             filename::String
                             sliced_bonds::Array{<:Index, 1},
-                            number_amplitudes::Int64,
+                            amplitudes::Union{Base.Generator, <: AbstractArray},
                             seed::Union{Nothing, Int64}=nothing)
 
 Generate a yml file with parameters corresponding to partitions and dimensions of each
@@ -135,19 +131,13 @@ along with the amplitudes to contract for.
 function generate_parameter_file(tnc::TensorNetworkCircuit,
                                  filename_prefix::String,
                                  sliced_bonds::Array{<:Index, 1},
-                                 number_amplitudes::Int64,
+                                 amplitudes::Union{Base.Generator, <: AbstractArray},
                                  seed::Union{Nothing, Int64}=nothing)
-    rng = MersenneTwister(seed)
-    bitstring = n -> join(rand(rng, ['0', '1'], n))
-    amplitude_strs = [bitstring(qubits(tnc)) for _ in 1:number_amplitudes]
-
     partition_dims = Dict{String, Int64}()
     for (i, sliced_bond) in enumerate(sliced_bonds)
         partition_dims["v$i"] = dim(sliced_bond)
     end
     partition_parameters = Dict("parameters" => partition_dims)
-    config = Dict("partitions" => partition_parameters, "amplitudes" => unique(amplitude_strs))
+    config = Dict("partitions" => partition_parameters, "amplitudes" => collect(amplitudes))
     YAML.write_file("$(filename_prefix).yml", config)
 end
-
-end # module

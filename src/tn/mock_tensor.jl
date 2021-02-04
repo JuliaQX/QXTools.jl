@@ -22,11 +22,11 @@ end
 copy(a::MockTensor{Elt}) where Elt = MockTensor{Elt}(a.size)
 length(a::MockTensor{Elt}) where Elt = prod(size(a))
 size(a::MockTensor{Elt}) where Elt = a.size
-getindex(a::MockTensor{Elt}, i::Int64) where Elt = NaN
-getindex(a::MockTensor{Elt}, i...) where Elt = NaN
+getindex(::MockTensor{Elt}, ::Int64) where Elt = NaN
+getindex(::MockTensor{Elt}, i...) where Elt = NaN
 tensor(a::MockTensor{Elt}, inds) where Elt = NDTensors.Tensor{Elt, length(inds), MockTensor{Elt}, ITensors.IndexSet}(inds, a)
-getindex(a::NDTensors.Tensor{Elt, N, StoreT, IndsT}, i) where {Elt, N , StoreT <: MockTensor, IndsT} = NaN
-getindex(a::NDTensors.Tensor{Elt, N, StoreT, IndsT}, i...) where {Elt, N , StoreT <: MockTensor, IndsT} = NaN
+getindex(::NDTensors.Tensor{Elt, N, StoreT, IndsT}, ::Any) where {Elt, N , StoreT <: MockTensor, IndsT} = NaN
+getindex(::NDTensors.Tensor{Elt, N, StoreT, IndsT}, i...) where {Elt, N , StoreT <: MockTensor, IndsT} = NaN
 
 
 """
@@ -44,6 +44,8 @@ function mock_contract(T1::NDTensors.Tensor{Elt1, N, StoreT, IndsT},
                        T2::NDTensors.Tensor{Elt2, M, StoreT, IndsT},
                        labelsT2,
                        labelsR = NDTensors.contract_labels(labelsT1, labelsT2)) where {Elt1, Elt2, N, M, StoreT <: MockTensor, IndsT}
+
+    ITensors.disable_warn_order()
     final_dims = zeros(Int64, length(labelsR))
     T1_dims, T2_dims = size(T1), size(T2)
     final_inds = Array{ITensors.Index}(undef, length(labelsR))
@@ -71,7 +73,7 @@ function contract_tensors(A::ITensors.ITensor, B::ITensors.ITensor)
         CT = contract(tensor(A), labelsA, tensor(B), labelsB)
     end
     C = itensor(CT)
-    warnTensorOrder = get_warn_order()
+    warnTensorOrder = ITensors.get_warn_order()
     if !isnothing(warnTensorOrder) > 0 &&
         order(C) >= warnTensorOrder
         #@warn "Contraction resulted in ITensor with $(order(C)) indices, which is greater than or equal to the ITensor order warning threshold $warnTensorOrder. You can modify the threshold with functions like `set_warn_order!(::Int)`, `reset_warn_order!()`, and `disable_warn_order!()`."

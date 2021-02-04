@@ -3,7 +3,7 @@ using ITensors
 
 # TensorNetwork struct and public functions
 export next_tensor_id
-export TensorNetwork, bonds, simple_contraction, tensor_data, neighbours
+export TensorNetwork, bonds, simple_contraction, simple_contraction!, tensor_data, neighbours
 export decompose_tensor!, replace_with_svd!
 export contract_tn!, contract_pair!, replace_tensor_symbol!, contract_ncon_indices
 export use_mock_tensors
@@ -15,12 +15,10 @@ const qxsim_ids = Dict{Symbol, Int64}(:tensor_id => 0)
 mutable struct TensorNetwork
     tensor_map::OrderedDict{Symbol, ITensor}
     bond_map::OrderedDict{Index, Vector{Symbol}}
-
-    # constructors
-    TensorNetwork(tensor_map::OrderedDict{Symbol, ITensor},
-                  bond_map::OrderedDict{<:Index, Vector{Symbol}}) = new(tensor_map, bond_map)
-    TensorNetwork() = new(OrderedDict{Symbol, ITensor}(), OrderedDict{Index, Vector{Symbol}}())
 end
+
+# constructors
+TensorNetwork() = TensorNetwork(OrderedDict{Symbol, ITensor}(), OrderedDict{Index, Vector{Symbol}}())
 
 """
     TensorNetwork(array::Vector{<: ITensor})
@@ -45,8 +43,8 @@ function TensorNetwork(array::Vector{<: ITensor})
     TensorNetwork(tensor_map, bond_map)
 end
 
+Base.copy(tn::TensorNetwork) = TensorNetwork(collect(values(tn)))
 Base.length(tn::TensorNetwork) = length(tn.tensor_map)
-tensor_data(tn::TensorNetwork, i::Symbol) = tensor_data(tn.tensor_map[i])
 Base.values(tn::TensorNetwork) = values(tn.tensor_map)
 Base.iterate(tn::TensorNetwork) = iterate(values(tn))
 Base.iterate(tn::TensorNetwork, state) = iterate(values(tn), state)
@@ -56,7 +54,10 @@ Base.getindex(tn::TensorNetwork, i::Symbol) = tn.tensor_map[i]
 Base.haskey(tn::TensorNetwork, i::Symbol) = haskey(tn.tensor_map, i)
 Base.getindex(tn::TensorNetwork, i::T) where T <: Index = tn.bond_map[i]
 Base.haskey(tn::TensorNetwork, i::T) where T <: Index = haskey(tn.bond_map, i)
+Base.show(io::IO, ::MIME"text/plain", tn::TensorNetwork) = print(io, "TensorNetwork(tensors => $(length(tn)), bonds => $(length(bonds(tn))))")
+
 bonds(tn::TensorNetwork) = keys(tn.bond_map)
+tensor_data(tn::TensorNetwork, i::Symbol) = tensor_data(tn.tensor_map[i])
 
 """
     neighbours(tn::TensorNetwork, tensor::Symbol)
@@ -155,6 +156,18 @@ function simple_contraction(tn::TensorNetwork)
     reduce(contract_tensors, tn, init=ITensor(1.))
 end
 
+"""
+    simple_contraction!(tn::TensorNetwork)
+
+Function to perfrom a simple contraction, contracting all tensors in order.
+Only useful for very small networks for testing.
+"""
+function simple_contraction!(tn::TensorNetwork)
+    final_tensor = simple_contraction(tn)    
+    delete!.([tn], keys(tn))
+    final_sym = push!(tn, final_tensor)
+    tn[final_sym]
+end
 
 """
     contract_pair!(tn::TensorNetwork, A_id::Symbol, B_id::Symbol)
@@ -200,8 +213,8 @@ function contract_tn!(tn::TensorNetwork, plan::Array{<:Index, 1})
             end
         end
     end
-
-    first(tn.tensor_map)[2]
+    simple_contraction!(tn)
+    first(tn)
 end
 
 """
@@ -258,7 +271,7 @@ function replace_with_svd!(tn::TensorNetwork,
                             kwargs...)
     # Get the tensor and decompose it.
     tensor = tn.tensor_map[tensor_id]
-    U, S, V = svd(tensor, left_indices; kwargs, use_absolute_cutoff=true)
+    U, S, V = svd(tensor, left_indices; use_absolute_cutoff=true, kwargs...)
 
     # Remove the original tensor and add its svd factors to the network.
     delete!(tn, tensor_id)
@@ -278,7 +291,7 @@ function Base.delete!(tn::TensorNetwork, tensor_id::Symbol)
     tensor = tn.tensor_map[tensor_id]
     for index in inds(tensor)
         # remove tensor_id from tn.bond_map[index]
-        filter!(id -> id ≠ tensor_id, tn.bond_map[index])
+        filter!(id -> id ≠ tensor_id, tn.bond_map[index])        
     end
     delete!(tn.tensor_map, tensor_id)
 end

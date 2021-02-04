@@ -1,6 +1,7 @@
 import QXGraph; qxg = QXGraph
 import LightGraphs
 import ITensors
+using .TN
 
 export convert_to_graph, convert_to_line_graph
 export quickbb_contraction_plan, contraction_scheme
@@ -74,7 +75,7 @@ end
 
 Convert the ITensors Index `ind` to a symbol.
 """
-function index_to_symbol(ind::Index; use_tags::Bool=false)
+function index_to_symbol(ind::TN.Index; use_tags::Bool=false)
     if use_tags
         symb = String(ind.tags[1])*"_"*String(ind.tags[2])
         return Symbol(symb)
@@ -101,6 +102,8 @@ function quickbb_contraction_plan(tn::TensorNetwork; time::Integer=120, order::S
     # Convert the contraction plan to an array of Index structs in tn.
     [symbol_map[index_symbol] for index_symbol in plan]
 end
+
+quickbb_contraction_plan(tnc::TensorNetworkCircuit; kwargs...) = quickbb_contraction_plan(tnc.tn; kwargs...)
 
 
 """
@@ -135,3 +138,5 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
     edges_to_slice = [symbol_map[index_symbol] for index_symbol in edges_to_slice]
     edges_to_slice, modified_plan
 end
+
+contraction_scheme(tnc::TensorNetworkCircuit, args...; kwargs...) = contraction_scheme(tnc.tn, args...; kwargs...)
