@@ -128,6 +128,17 @@ end
     g, symbol_map = QXSim.convert_to_line_graph(tnc.tn)
     @test QXSim.TN.qxg.nv(g) == 8 # 2 between gates and 6 to inputs and outputs
     @test QXSim.TN.qxg.ne(g) == 13 # 1-qubit gate -> 1 edge, 2-qubit gate -> 6 edges. 1+6+6.
+
+    # Check conversion to linegraph of network's hypergraph.
+    tnc = TensorNetworkCircuit(2)
+    push!(tnc, [1], rand(2, 2))
+    push!(tnc, [1, 2], rand(4, 4); diagonal=true)
+    push!(tnc, [1], rand(2, 2); diagonal=true)
+    g, symbol_map = QXSim.convert_to_line_graph(tnc.tn; use_tags=true)
+    @test QXSim.TN.qxg.nv(g) == 3
+    @test QXSim.TN.qxg.ne(g) == 2
+    @test length(symbol_map) == 3
+    @test sum([typeof(inds) <:Index ? 1 : length(inds) for inds in values(symbol_map)]) == 6
 end
 
 @testset "Test mock tensors" begin

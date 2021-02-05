@@ -21,24 +21,35 @@ function convert_to_graph(tn::TensorNetwork)
 end
 
 """
-    convert_to_line_graph(tn::TensorNetwork)
+    convert_to_line_graph(tn::TensorNetwork; use_tags::Bool=false)
 
 Create a labeled graph representing the line graph of 'tn'.
 
-Each Index struct in 'tn' is converted to a symbol and used as a label for the corresponding
-vertex in the line graph. A dictionary is also returned which maps these symbols to the 
-original Index structs.
+If use_tags is false, each Index struct in 'tn' is converted to a symbol and used as a label 
+for the corresponding vertex in the line graph. A dictionary is also returned which maps 
+these symbols to the original Index structs.
+
+# Keywords
+- `use_tags::Bool=false`: set it index tags should be used as line graph vertex labels.
 """
-function convert_to_line_graph(tn::TensorNetwork)
+function convert_to_line_graph(tn::TensorNetwork; use_tags::Bool=false)
     # Create the graph which will be the line graph.
     g = qxg.LabeledGraph()
 
-    # Add a vertex for each index in tn.
-    symbol_map = Dict{Symbol, Index}()
+    # Add a vertex for each edge/hyperedge in tn.
+    symbol_map = Dict{Symbol, Union{Index, Array{<:Index, 1}}}()
     for index in bonds(tn)
-        index_symbol = Symbol(index)
-        qxg.add_vertex!(g, index_symbol)
-        symbol_map[index_symbol] = index
+        index_symbol = index_to_symbol(index; use_tags=use_tags)
+        v = qxg.get_vertex(g, index_symbol)
+        if v === nothing
+            qxg.add_vertex!(g, index_symbol)
+        end
+
+        if haskey(symbol_map, index_symbol)
+            symbol_map[index_symbol] = vcat(symbol_map[index_symbol], index)
+        else
+            symbol_map[index_symbol] = index
+        end
     end
 
     # Connect all vertices whose indices belong to the same tensor in tn.
@@ -47,11 +58,29 @@ function convert_to_line_graph(tn::TensorNetwork)
         indices = inds(tensor)
         for i = 1:length(indices)-1
             for j = i+1:length(indices)
-                qxg.add_edge!(g, Symbol(indices[i]), Symbol(indices[j]))
+                vi = index_to_symbol(indices[i]; use_tags=use_tags)
+                vj = index_to_symbol(indices[j]; use_tags=use_tags)
+                if !(vi==vj)
+                    qxg.add_edge!(g, vi, vj)
+                end
             end
         end
     end
     g, symbol_map
+end
+
+"""
+    index_to_symbol(ind::Index; use_tags::Bool=false)
+
+Convert the ITensors Index `ind` to a symbol.
+"""
+function index_to_symbol(ind::Index; use_tags::Bool=false)
+    if use_tags
+        symb = String(ind.tags[1])*"_"*String(ind.tags[2])
+        return Symbol(symb)
+    else
+        return Symbol(ind)
+    end
 end
 
 

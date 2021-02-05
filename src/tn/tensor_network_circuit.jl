@@ -23,7 +23,7 @@ mutable struct TensorNetworkCircuit
     tn::TensorNetwork
 
     function TensorNetworkCircuit(qubits::Int64)
-        input_indices = [Index(2, tags="Qubit $i") for i in 1:qubits]
+        input_indices = [Index(2, tags="Qubit $i,Hyp 1") for i in 1:qubits]
         output_indices = copy(input_indices)
         input_tensors = Array{Union{Symbol, Nothing}, 1}(nothing, qubits)
         output_tensors = Array{Union{Symbol, Nothing}, 1}(nothing, qubits)
@@ -58,9 +58,18 @@ the qubits it acts on and an array of the matrix elements
 """
 function Base.push!(tnc::TensorNetworkCircuit,
                     qubits::Vector{Int64},
-                    data::Array{T, 2}) where T
+                    data::Array{T, 2};
+                    diagonal::Bool=false) where T
     input_indices = tnc.output_indices[qubits]
-    output_indices = [prime(x) for x in input_indices]
+    if diagonal
+        output_indices = [prime(x) for x in input_indices]
+    else
+        tsold = [ind.tags[1] for ind in input_indices]
+        tsnew = [parse(Int, String(tag)[4:end]) + 1 for tag in tsold]
+        tsnew = ["Hyp $num" for num in tsnew]
+        output_indices = [prime(replacetags(x, tsold[i] => tsnew[i])) 
+                            for (i, x) in enumerate(input_indices)]
+    end
     tnc.output_indices[qubits] = output_indices
     indices = [output_indices..., input_indices...]
     @assert prod(size(data)) == prod(dim.(indices)) "Data matrix dimension does not match indices"
