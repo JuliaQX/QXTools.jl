@@ -268,6 +268,14 @@ repo-url = "git@git.ichec.ie:quantex/qxgraph.git"
 uuid = "b15f1ded-d19a-4aca-a940-1991fcfc7750"
 version = "0.1.0"
 
+[[QXTn]]
+deps = ["DataStructures", "ITensors", "LinearAlgebra", "NDTensors", "TestSetExtensions"]
+git-tree-sha1 = "cc056f58bb990bfd9fb4af2c5686c0b88aa36bdd"
+repo-rev = "master"
+repo-url = "git@git.ichec.ie:quantex/qxtn.jl.git"
+uuid = "995e1dad-72e3-4b97-b122-7deaeb8b44f9"
+version = "0.1.0"
+
 [[QXZoo]]
 deps = ["DataStructures", "LinearAlgebra", "Memoize", "Random", "Reexport", "StaticArrays", "Test", "UUIDs"]
 git-tree-sha1 = "4bff799f9caabec12c93021200fc6bf6fc3f3248"

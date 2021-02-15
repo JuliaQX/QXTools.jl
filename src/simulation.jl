@@ -63,6 +63,20 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
 end
 
 """
+    single_amplitude(tnc::TensorNetworkCircuit, plan::Array{<:Index, 1}, amplitude::Union{String, Nothing}=nothing)
+
+Contract the given tensor network using the given plan to calculate the amplitude of the given bitstring.
+Creates a copy of the tensor network, replaces the outputs with those corresponding to the bitstring and then
+contracts the network and returns the scalar amplitude.
+"""
+function single_amplitude(tnc::TensorNetworkCircuit, plan::Array{<:Index, 1}, amplitude::Union{String, Nothing}=nothing)
+    sim_tnc = copy(tnc)
+    add_output!(sim_tnc, amplitude)
+    output = contract_tn!(sim_tnc, plan)
+    output[1]
+end
+
+"""
     run_simulation(circ::QXZoo.Circuit.Circ;
                    num_amplitudes::Union{Int64, Nothing}=nothing,
                    seed::Union{Int64, Nothing}=nothing)

@@ -7,7 +7,7 @@ import DataStructures: OrderedDict
 include("circuits/circuits.jl")
 
 # data structions and functions tensor networks
-include("tn/tn.jl")
+# include("tn/tn.jl")
 
 include("tn_conversion.jl")
 

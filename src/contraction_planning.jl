@@ -1,7 +1,7 @@
 import QXGraph; qxg = QXGraph
 import LightGraphs
 import ITensors
-using .TN
+using QXTn
 
 export convert_to_graph, convert_to_line_graph
 export quickbb_contraction_plan, contraction_scheme
@@ -75,7 +75,7 @@ end
 
 Convert the ITensors Index `ind` to a symbol.
 """
-function index_to_symbol(ind::TN.Index; use_tags::Bool=false)
+function index_to_symbol(ind::QXTn.Index; use_tags::Bool=false)
     if use_tags
         symb = String(ind.tags[1])*"_"*String(ind.tags[2])
         return Symbol(symb)

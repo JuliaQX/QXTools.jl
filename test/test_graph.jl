@@ -1,6 +1,6 @@
 using QXSim.Circuits
-using QXSim.TN
 using QXGraph
+using QXTn
 
 using LightGraphs
 using ITensors
