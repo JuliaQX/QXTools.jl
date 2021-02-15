@@ -153,7 +153,7 @@ Function to perfrom a simple contraction, contracting all tensors in order.
 Only useful for very small networks for testing.
 """
 function simple_contraction(tn::TensorNetwork)
-    reduce(contract_tensors, tn, init=ITensor(1.))
+    store(reduce(contract_tensors, tn, init=ITensor(1.)))
 end
 
 """
@@ -163,10 +163,12 @@ Function to perfrom a simple contraction, contracting all tensors in order.
 Only useful for very small networks for testing.
 """
 function simple_contraction!(tn::TensorNetwork)
-    final_tensor = simple_contraction(tn)    
-    delete!.([tn], keys(tn))
-    final_sym = push!(tn, final_tensor)
-    tn[final_sym]
+    tensor_syms = collect(keys(tn))
+    A = tensor_syms[1]
+    for B in tensor_syms[2:end]
+        A = contract_pair!(tn, A, B)
+    end
+    store(tn[A])
 end
 
 """
@@ -214,7 +216,6 @@ function contract_tn!(tn::TensorNetwork, plan::Array{<:Index, 1})
         end
     end
     simple_contraction!(tn)
-    first(tn)
 end
 
 """

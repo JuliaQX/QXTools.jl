@@ -70,7 +70,7 @@ end
     @test length(tnc) == 1
 
     # add two qubit gate
-    push!(tnc, [1, 2], rand(4, 4))
+    push!(tnc, [1, 2], rand(4, 4), decompose=false)
     @test length(tnc) == 2
 
     # adding input
@@ -96,14 +96,20 @@ end
     circ = create_test_circuit()
 
     # check tensornetwork size when no input or output
-    tnc = convert_to_tnc(circ, no_input=true, no_output=true)
+    tnc = convert_to_tnc(circ, no_input=true, no_output=true, decompose=false)
     @test qubits(tnc) == 3
     @test length(tnc) == 3
     # make sure there are gates on all qubits as expected
     @test all(tnc.input_indices .!= tnc.output_indices)
 
+    tnc = convert_to_tnc(circ, no_input=true, no_output=true, decompose=true)
+    @test qubits(tnc) == 3
+    @test length(tnc) == 5
+    # make sure there are gates on all qubits as expected
+    @test all(tnc.input_indices .!= tnc.output_indices)
+
     # convert again adding input
-    tnc = convert_to_tnc(circ, no_input=false, no_output=true)
+    tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
     @test length(tnc) == 6
 
     # check data of first tensor matches that of first gate
@@ -118,7 +124,14 @@ end
     output = simple_contraction(tnc)
     ref = zeros(8)
     ref[[1,8]] .= 1/sqrt(2)
-    @test all(store(output) .≈ ref)
+    @test all(output .≈ ref)
+
+    tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
+
+    output = simple_contraction(tnc)
+    ref = zeros(8)
+    ref[[1,8]] .= 1/sqrt(2)
+    @test all(output .≈ ref)
 end
 
 
@@ -146,7 +159,7 @@ end
 @testset "Test tensor decomnposition" begin
     # prepare the circuit.
     circ = create_test_circuit()
-    tnc = convert_to_tnc(circ, no_input=false, no_output=false)
+    tnc = convert_to_tnc(circ, no_input=false, no_output=false, decompose=false)
     @assert length(tnc.tn.tensor_map) == 9
 
     # Find a tensor with four indices to decompose.

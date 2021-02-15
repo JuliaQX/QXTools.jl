@@ -1,10 +1,7 @@
 using ITensors
 
-import QXZoo
-using ..Circuits
-
 # TensorNetworkCircuit struct and public functions
-export TensorNetworkCircuit, add_input!, add_output!, convert_to_tnc, qubits
+export TensorNetworkCircuit, add_input!, add_output!, qubits
 export contract_tn!, decompose_tensor!
 export input_tensors, output_tensors, input_indices, output_indices, single_amplitude
 
@@ -24,7 +21,7 @@ mutable struct TensorNetworkCircuit
 end
 
 function TensorNetworkCircuit(qubits::Int64)
-    input_indices = [Index(2, tags="Qubit $i,Hyp 1") for i in 1:qubits]
+    input_indices = [Index(2, tags="Qubit $i") for i in 1:qubits]
     output_indices = copy(input_indices)
     input_tensors = Array{Union{Symbol, Nothing}, 1}(nothing, qubits)
     output_tensors = Array{Union{Symbol, Nothing}, 1}(nothing, qubits)
@@ -80,22 +77,34 @@ the qubits it acts on and an array of the matrix elements
 function Base.push!(tnc::TensorNetworkCircuit,
                     qubits::Vector{Int64},
                     data::Array{T, 2};
-                    diagonal::Bool=false) where T
+                    diagonal_check::Bool=false,
+                    decompose::Bool=true) where T                    
     input_indices = tnc.output_indices[qubits]
-    if diagonal
-        output_indices = [prime(x) for x in input_indices]
+    tnc.output_indices[qubits] = output_indices = [prime(x) for x in input_indices]
+    if length(qubits) == 1 || !decompose         
+        indices = [output_indices..., input_indices...]
+        @assert prod(size(data)) == prod(dim.(indices)) "Data matrix dimension does not match indices"
+        data = reshape(data, Tuple(dim.(indices)))
+        push!(tnc, indices, data)
+    elseif length(qubits) == 2 && decompose         
+        data = reshape(data, Tuple([dim.(output_indices)..., dim.(input_indices)...]))
+        A, B = decompose_gate(data)
+        if size(A)[3] == size(B)[1] == 1
+            A = reshape(A, Tuple(size(A)[1:2]))
+            B = reshape(A, Tuple(size(B)[2:3]))
+            a_indices = [output_indices[1], input_indices[1]]
+            b_indices = [output_indices[2], input_indices[2]]
+        else
+            virtual_index = Index(size(A)[3])
+            a_indices = [output_indices[1], input_indices[1], virtual_index]
+            b_indices = [virtual_index, output_indices[2], input_indices[2]]
+        end
+        push!(tnc, a_indices, A)
+        push!(tnc, b_indices, B)    
     else
-        tsold = [ind.tags[1] for ind in input_indices]
-        tsnew = [parse(Int, String(tag)[4:end]) + 1 for tag in tsold]
-        tsnew = ["Hyp $num" for num in tsnew]
-        output_indices = [prime(replacetags(x, tsold[i] => tsnew[i])) 
-                            for (i, x) in enumerate(input_indices)]
+
+        @error("Gates spanning more than two qubits not supported with decomposition yet.")
     end
-    tnc.output_indices[qubits] = output_indices
-    indices = [output_indices..., input_indices...]
-    @assert prod(size(data)) == prod(dim.(indices)) "Data matrix dimension does not match indices"
-    data = reshape(data, Tuple(dim.(indices)))
-    push!(tnc, indices, data)
 end
 
 Base.push!(tnc::TensorNetworkCircuit, args...) = Base.push!(tnc.tn, args...)
@@ -109,41 +118,6 @@ function Base.delete!(tnc::TensorNetworkCircuit, tensor_id::Symbol)
     replace!(tnc.input_tensors, tensor_id => nothing)
     replace!(tnc.output_tensors, tensor_id => nothing)
     delete!(tnc.tn, tensor_id)
-end
-
-"""
-_convert_to_tnc(circ::QXZoo.Circuit.Circ)
-
-Function to convert a QXZoo circuit to a QXSim tensor network circuit
-"""
-function _convert_to_tnc(circ::QXZoo.Circuit.Circ)
-    tnc = TensorNetworkCircuit(circ.num_qubits)
-    for gate in circ.circ_ops
-        mat_elements = gate_matrix(gate)
-        qubits = gate_qubits(gate)
-        push!(tnc, qubits, mat_elements)
-    end
-    tnc
-end
-
-"""
-convert_to_tnc(circ::QXZoo.Circuit.Circ;
-               input::Union{String, Nothing}=nothing,
-               output::Union{String, Nothing}=nothing,
-               no_input::Bool=false,
-               no_output::Bool=false)
-
-Function to convert a QXZoo circuit to a QXSim tensor network circuit
-"""
-function convert_to_tnc(circ::QXZoo.Circuit.Circ;
-                        input::Union{String, Nothing}=nothing,
-                        output::Union{String, Nothing}=nothing,
-                        no_input::Bool=false,
-                        no_output::Bool=false)
-    tnc = _convert_to_tnc(circ)
-    if !no_input add_input!(tnc, input) end
-    if !no_output add_output!(tnc, output) end
-    tnc
 end
 
 """
@@ -198,19 +172,6 @@ contract_tn!(tnc::TensorNetworkCircuit, plan) = contract_tn!(tnc.tn, plan)
 
 contract_tn(tnc::TensorNetworkCircuit, plan) = contract_tn!(copy(tnc), plan)
 
-function quickbb_contraction_plan(tnc::TensorNetworkCircuit; 
-                                  time::Integer=120, 
-                                  order::Symbol=:_)
-    quickbb_contraction_plan(tnc.tn; time=time, order=order)
-end
-
-function contraction_scheme(tnc::TensorNetworkCircuit, num::Integer; 
-                            time::Int=120,
-                            order::Symbol=:_,
-                            score_function::Symbol=:direct_treewidth)
-    contraction_scheme(tnc.tn, num; time=time, order=order, score_function=score_function)
-end
-
 function decompose_tensor!(tnc::TensorNetworkCircuit, args...; kwargs...)                            
     decompose_tensor!(tnc.tn, args...; kwargs...)
 end
@@ -222,7 +183,6 @@ function single_amplitude(tnc::TensorNetworkCircuit, plan::Array{<:Index, 1}, am
     sim_tnc = copy(tnc)
     add_output!(sim_tnc, amplitude)
     output = contract_tn!(sim_tnc, plan)
-    
-    store(output)[1]
+    output[1]
 end
 
