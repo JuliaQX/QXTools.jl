@@ -270,11 +270,11 @@ version = "0.1.0"
 
 [[QXTn]]
 deps = ["DataStructures", "ITensors", "LinearAlgebra", "NDTensors", "TestSetExtensions"]
-git-tree-sha1 = "cc056f58bb990bfd9fb4af2c5686c0b88aa36bdd"
+git-tree-sha1 = "f363dbc72497b22e623cd2cf8f46b3374a67efaf"
 repo-rev = "master"
 repo-url = "git@git.ichec.ie:quantex/qxtn.jl.git"
 uuid = "995e1dad-72e3-4b97-b122-7deaeb8b44f9"
-version = "0.1.0"
+version = "0.1.1"
 
 [[QXZoo]]
 deps = ["DataStructures", "LinearAlgebra", "Memoize", "Random", "Reexport", "StaticArrays", "Test", "UUIDs"]

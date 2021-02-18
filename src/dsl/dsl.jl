@@ -55,23 +55,23 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
 
     write_dsl_load_header(tnc, dsl_filename, data_filename)
 
+    # we create a network with mocked tensors
+    tnc_copy = copy(tnc)
+    tn_copy = tnc_copy.tn
 
-    # wr create a network with mocked tensors
-    tn_mock = use_mock_tensors(tnc.tn)
-
-    for (i, tensor_sym) in enumerate(output_tensors(tnc))
-        replace_tensor_symbol!(tn_mock, tensor_sym, Symbol("\$o$i"))
+    for (i, tensor_sym) in enumerate(output_tensors(tnc_copy))
+        replace_tensor_symbol!(tn_copy, tensor_sym, Symbol("\$o$i"))
     end
 
     # create views on tensors
     # @assert all([!(x in output_indices(tnc)) for x in sliced_bonds]) "Cannot slice output indices"
     open(dsl_filename, "a") do io
         for (i, slice_bond) in enumerate(sliced_bonds)
-            slice_tensors = tn_mock[slice_bond]
+            slice_tensors = tn_copy[slice_bond]
             for tensor_sym in slice_tensors
-                position_of_index =  findfirst(x -> x == slice_bond, inds(tn_mock[tensor_sym]))
+                position_of_index =  findfirst(x -> x == slice_bond, inds(tn_copy[tensor_sym]))
                 new_sym = Symbol("$(tensor_sym)_\$v$i")
-                replace_tensor_symbol!(tn_mock, tensor_sym, new_sym)
+                replace_tensor_symbol!(tn_copy, tensor_sym, new_sym)
                 write(io, "view $new_sym $tensor_sym $position_of_index \$v$(i)\n")
                 write(io, "del $tensor_sym\n")
             end
@@ -81,13 +81,13 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
     # perform contraction
     open(dsl_filename, "a") do io
         for index in plan
-            if haskey(tn_mock, index)
-                tensor_pair = tn_mock[index]
+            if haskey(tn_copy, index)
+                tensor_pair = tn_copy[index]
                 if length(tensor_pair) == 2
                     A_sym = tensor_pair[1]
                     B_sym = tensor_pair[2]
-                    ncon_labels = contract_ncon_indices(tn_mock, A_sym, B_sym)
-                    C_sym = contract_pair!(tn_mock, A_sym, B_sym)
+                    ncon_labels = contract_ncon_indices(tn_copy, A_sym, B_sym)
+                    C_sym = contract_pair!(tn_copy, A_sym, B_sym, mock=true)
                     A_labels = join(ncon_labels[1], ",")
                     B_labels = join(ncon_labels[2], ",")
                     write(io, "ncon $C_sym $A_sym $A_labels $B_sym $B_labels\n")
@@ -96,13 +96,13 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
                 end
             end
         end
-        if length(tn_mock) > 1
-            tensors = collect(keys(tn_mock))
+        if length(tn_copy) > 1
+            tensors = collect(keys(tn_copy))
             A_sym = tensors[1]
             for j in 2:length(tensors)
                 B_sym = tensors[j]
-                ncon_labels = contract_ncon_indices(tn_mock, A_sym, B_sym)
-                C_sym = contract_pair!(tn_mock, A_sym, B_sym)
+                ncon_labels = contract_ncon_indices(tn_copy, A_sym, B_sym)
+                C_sym = contract_pair!(tn_copy, A_sym, B_sym, mock=true)
                 parse_labels = x -> length(x) == 0 ? "0" : join(x, ",")
                 A_labels = parse_labels(ncon_labels[1])
                 B_labels = parse_labels(ncon_labels[2])
@@ -112,7 +112,7 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
                 A_sym = C_sym
             end
         end
-        output_tensor = first(keys(tn_mock))
+        output_tensor = first(keys(tn_copy))
         write(io, "save $output_tensor output\n")
     end
     nothing
