@@ -1,5 +1,5 @@
-using QXSim
-using Documenter
+push!(LOAD_PATH, "../")
+using QXSim, Documenter
 
 makedocs(;
     modules=[QXSim],
@@ -13,6 +13,10 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Getting Started" => "getting_started.md",
+        "User's Guide" => "users_guide.md",            
+        "Tutorials" => [],
+        "LICENSE" => "license.md"
     ],
 )
 

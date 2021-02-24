@@ -34,7 +34,7 @@ tensor. If there is already a tensor in the cache which matches (up to numerical
 the symbol of the pre-existing tensor is returned.
 
 # Examples
-```jldoctest
+```
 julia> tc = TensorCache();
 julia> push!(tc, [1.0, π])
 :data_1

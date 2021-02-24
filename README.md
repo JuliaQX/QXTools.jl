@@ -77,3 +77,35 @@ For more details and options see the documentation at [docs](doc_url).
 # Contributing
 Contributions from users are welcome and we encourage users to open issues and submit merge/pull requests for any problems or feature requests they have. The
 [CONTRIBUTING.md](CONTRIBUTION.md) has further details of the contribution guidelines.
+
+
+# Building documentatoin
+
+QXSim.jl using [Documenter.jl](https://juliadocs.github.io/Documenter.jl/stable/) to generate documentation. To build
+the documentation locally run the following from the `docs` folder.
+
+The first time it is will be necessary to instantiate the environment to install dependencies
+
+```
+julia --project 'import Pkg; Pkg.instantiate()'
+```
+
+and then to build the documentaton
+
+```
+julia --project make.jl
+```
+
+To serve the generated documentation locally use
+
+```
+julia --project -e 'using LiveServer; serve(dir="build")'
+```
+
+Or with python3 using from the `docs/build` folder using
+
+```
+python3 -m http.server
+```
+
+The generated documentation should now be viewable locally in a browser at `http://localhost:8000`.

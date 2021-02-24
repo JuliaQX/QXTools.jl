@@ -1,3 +1,7 @@
+stages:
+  - test
+  - docs
+
 .script:
   before_script:
     ##
@@ -42,7 +46,19 @@
         c, t = get_summary(process_folder())
         using Printf
         @printf "Test coverage %.2f%%\n" 100c / t'
+.docs:
+  script:    
+    - |
+      julia --project -e '
+        using Pkg
+        Pkg.instantiate()
+        Pkg.add("Documenter")
+        Pkg.add("DataFrames")
+        Pkg.add("Latexify")'
+    - julia --project docs/make.jl
+
 Julia 1.5:
+  stage: test
   image: julia:1.5
   tags:
     - docker
@@ -51,9 +67,22 @@ Julia 1.5:
     - .coverage
 
 Julia 1.6:
+  stage: test
   image: julia:1.6
   tags:
     - docker
   extends:
     - .script
     - .coverage
+
+docs:
+  stage: docs
+  image: julia:1.5
+  tags:
+    - docker
+  extends:
+    - .script
+    - .docs
+  artifacts:
+    paths:
+      - docs/build
