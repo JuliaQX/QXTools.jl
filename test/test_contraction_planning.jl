@@ -54,8 +54,7 @@ end
 
     # test contraction plan
     plan = quickbb_contraction_plan(tnc)
-    @test length(plan) == 8 # This includes open indices.
-    @test length(unique(plan)) == 8
+    @test length(plan) == 5
 
     # test contracting the network
     output = contract_tn!(tnc, plan)
@@ -69,5 +68,20 @@ end
     # Test contraction scheme function
     edges_to_slice, plan = contraction_scheme(tnc, 3)
     @test length(edges_to_slice) == 3 # Should have 3 edges to slice
-    @test length(plan) == length(tnc.tn.bond_map) - 3 # modified plan should be smaller.
+    @test length(plan) == length(tnc) - 1 - 3 # modified plan should be smaller.
+end
+
+@testset "Test netcon contraction" begin
+    # prepare the circuit.
+    circ = create_test_circuit()
+    tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
+
+    # test contraction plan
+    plan = netcon(tnc)
+    @test length(plan) == 5
+
+    # test contracting the network
+    output = contract_tn!(tnc, plan)
+    ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
+    @test all(output .≈ ref)
 end

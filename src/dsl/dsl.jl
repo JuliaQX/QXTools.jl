@@ -46,7 +46,7 @@ with the plan provided
 """
 function generate_dsl_files(tnc::TensorNetworkCircuit,
                             prefix::String,
-                            plan::Array{<:Index, 1},
+                            plan::Array{NTuple{3, Symbol}, 1},
                             sliced_bonds::Array{<:Index, 1})
 
     dsl_filename = "$(prefix).tl"
@@ -59,8 +59,11 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
     tnc_copy = copy(tnc)
     tn_copy = tnc_copy.tn
 
+    changed_ids = Dict{Symbol, Symbol}()
     for (i, tensor_sym) in enumerate(output_tensors(tnc_copy))
-        replace_tensor_symbol!(tn_copy, tensor_sym, Symbol("\$o$i"))
+        new_sym = Symbol("\$o$i")
+        replace_tensor_symbol!(tn_copy, tensor_sym, new_sym)
+        changed_ids[tensor_sym] = new_sym
     end
 
     # create views on tensors
@@ -69,9 +72,10 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
         for (i, slice_bond) in enumerate(sliced_bonds)
             slice_tensors = tn_copy[slice_bond]
             for tensor_sym in slice_tensors
-                position_of_index =  findfirst(x -> x == slice_bond, inds(tn_copy[tensor_sym]))
+                position_of_index = findfirst(x -> x == slice_bond, inds(tn_copy[tensor_sym]))
                 new_sym = Symbol("$(tensor_sym)_\$v$i")
                 replace_tensor_symbol!(tn_copy, tensor_sym, new_sym)
+                changed_ids[tensor_sym] = new_sym
                 write(io, "view $new_sym $tensor_sym $position_of_index \$v$(i)\n")
                 write(io, "del $tensor_sym\n")
             end
@@ -80,21 +84,17 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
 
     # perform contraction
     open(dsl_filename, "a") do io
-        for index in plan
-            if haskey(tn_copy, index)
-                tensor_pair = tn_copy[index]
-                if length(tensor_pair) == 2
-                    A_sym = tensor_pair[1]
-                    B_sym = tensor_pair[2]
-                    ncon_labels = contract_ncon_indices(tn_copy, A_sym, B_sym)
-                    C_sym = contract_pair!(tn_copy, A_sym, B_sym, mock=true)
-                    A_labels = join(ncon_labels[1], ",")
-                    B_labels = join(ncon_labels[2], ",")
-                    write(io, "ncon $C_sym $A_sym $A_labels $B_sym $B_labels\n")
-                    write(io, "del $A_sym\n")
-                    write(io, "del $B_sym\n")
-                end
-            end
+        for (A_id, B_id, C_id) in plan
+            A_id = get(changed_ids, A_id, A_id)
+            B_id = get(changed_ids, B_id, B_id)
+
+            ncon_labels = contract_ncon_indices(tn_copy, A_id, B_id)
+            contract_pair!(tn_copy, A_id, B_id, C_id; mock=true)
+            A_labels = join(ncon_labels[1], ",")
+            B_labels = join(ncon_labels[2], ",")
+            write(io, "ncon $C_id $A_id $A_labels $B_id $B_labels\n")
+            write(io, "del $A_id\n")
+            write(io, "del $B_id\n")
         end
         if length(tn_copy) > 1
             tensors = collect(keys(tn_copy))
@@ -118,7 +118,7 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
     nothing
 end
 
-    """
+"""
     generate_parameter_file(tnc::TensorNetworkCircuit,
                             filename::String
                             sliced_bonds::Array{<:Index, 1},

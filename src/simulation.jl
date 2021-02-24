@@ -69,7 +69,7 @@ Contract the given tensor network using the given plan to calculate the amplitud
 Creates a copy of the tensor network, replaces the outputs with those corresponding to the bitstring and then
 contracts the network and returns the scalar amplitude.
 """
-function single_amplitude(tnc::TensorNetworkCircuit, plan::Array{<:Index, 1}, amplitude::Union{String, Nothing}=nothing)
+function single_amplitude(tnc::TensorNetworkCircuit, plan::Array{NTuple{3, Symbol}, 1}, amplitude::Union{String, Nothing}=nothing)
     sim_tnc = copy(tnc)
     add_output!(sim_tnc, amplitude)
     output = contract_tn!(sim_tnc, plan)
