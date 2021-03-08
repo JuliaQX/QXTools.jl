@@ -31,67 +31,38 @@ end
 convert_to_graph(tnc::TensorNetworkCircuit) = convert_to_graph(tnc.tn)
 
 """
-    convert_to_line_graph(tn::TensorNetwork; use_tags::Bool=false)
+    convert_to_line_graph(tn::TensorNetwork; use_hyperedges::Bool=false)
 
 Create a labeled graph representing the line graph of 'tn'.
 
-If use_tags is false, each Index struct in 'tn' is converted to a symbol and used as a label 
-for the corresponding vertex in the line graph. A dictionary is also returned which maps 
-these symbols to the original Index structs.
+If `use_hyperedges` is false, each edge in `tn` is assigned a symbol which labels a unique 
+vertex in the line graph. If it is true, the hyperedges of `tn` are assigned symbols instead.
+
+A dictionary is also returned which maps these symbols to the corresponding edges which are
+represented as tensor sets.
 
 # Keywords
-- `use_tags::Bool=false`: set it index tags should be used as line graph vertex labels.
+- `use_hyperedges::Bool=false`: set if hyperedges should be used to create the line graph.
 """
-function convert_to_line_graph(tn::TensorNetwork; use_tags::Bool=false)
-    # Create the line graph.
-    g = qxg.LabeledGraph()
+function convert_to_line_graph(tn::TensorNetwork; use_hyperedges::Bool=false)
+    edges = use_hyperedges ? get_hyperedges(tn) : [tn[ind] for ind in bonds(tn)] 
 
-    # Add a vertex for each edge/hyperedge in tn.
-    symbol_map = Dict{Symbol, Array{<:Index, 1}}()
-    for index in bonds(tn)
-        # Create the symbol to label the vertex representing the index
-        index_symbol = index_to_symbol(index; use_tags=use_tags)
+    # Create the line graph and dict mapping labels to hyperedges.
+    g = qxg.LabeledGraph(length(edges))
+    symbol_map = Dict{Symbol, Array{Symbol, 1}}(qxg.labels(g) .=> edges)
 
-        # If the index belongs to a hyperedge, the corresponding vertex may already exist.
-        v = qxg.get_vertex(g, index_symbol)
-        if v === nothing
-            qxg.add_vertex!(g, index_symbol)
-        end
-
-        # Add index to dictionary keeping track of how symbols represent sets of indices.
-        push!(get!(symbol_map, index_symbol, Array{Index, 1}()), index)
-    end
-
-    # Connect all vertices whose indices belong to the same tensor in tn. Each tensor in tn 
-    # should then be represented as a clique in the line graph.
-    for tensor in values(tn)
-        indices = inds(tensor)
-        for i = 1:length(indices)-1
-            for j = i+1:length(indices)
-                vi = index_to_symbol(indices[i]; use_tags=use_tags)
-                vj = index_to_symbol(indices[j]; use_tags=use_tags)
-                if !(vi==vj)
-                    qxg.add_edge!(g, vi, vj)
-                end
+    # Connect the vertices of g if corresponding hyperedges overlap.
+    for i in 1:length(edges)-1
+        for j in i+1:length(edges)
+            if !isempty(intersect(edges[i], edges[j]))
+                qxg.add_edge!(g, i, j)
             end
         end
     end
     g, symbol_map
 end
 
-"""
-    index_to_symbol(ind::Index; use_tags::Bool=false)
-
-Convert the Index `ind` to a symbol.
-"""
-function index_to_symbol(ind::QXTn.Index; use_tags::Bool=false)
-    if use_tags
-        symb = String(ind.tags[1])*"_"*String(ind.tags[2])
-        return Symbol(symb)
-    else
-        return Symbol(ind)
-    end
-end
+convert_to_line_graph(tnc::TensorNetworkCircuit; kwargs...) = convert_to_line_graph(tnc.tn; kwargs...)
 
 
 
@@ -107,15 +78,15 @@ Use QuickBB to create a contraction plan for 'tn'.
 # Keywords
 - `time::Integer=0`: the number of second to run the quickbb binary for.
 - `order::Symbol=:_`: the branching order to be used by quickbb (:random or :min_fill).
-- `hypergraph::Bool=false`: set if hyperedges exist in `tn` and shoudl be accounted for.
+- `hypergraph::Bool=false`: set if hyperedges exist in `tn` and should be accounted for.
 """
 function quickbb_contraction_plan(tn::TensorNetwork; 
                                   time::Integer=120, 
                                   order::Symbol=:_,
                                   hypergraph::Bool=false)
     # Convert tn to a line graph and pass it to quickbb to find an elimination order.
-    lg, symbol_map = convert_to_line_graph(tn, use_tags=hypergraph)
-    tw, order = qxg.quickbb(lg; time=time, order=order)
+    lg, symbol_map = convert_to_line_graph(tn, use_hyperedges=hypergraph)
+    order, metadata = qxg.quickbb(lg; time=time, order=order)
 
     # Convert the elimination order to an array of Index structs in tn.
     order = [symbol_map[index_symbol] for index_symbol in order]
@@ -143,7 +114,7 @@ for the remaining tensor network.
 - `order::Symbol=:_`: the branching order to be used by quickbb (:random or :min_fill).
 - `score_function::Symbol=:direct_treewidth`: function to maximise when selecting vertices 
                                             to remove. (:degree, :direct_treewidth)
-- `hypergraph::Bool=false`: set if hyperedges exist in `tn` and shoudl be accounted for.
+- `hypergraph::Bool=false`: set if hyperedges exist in `tn` and should be accounted for.
 """
 function contraction_scheme(tn::TensorNetwork, num::Integer; 
                             time::Integer=120,
@@ -152,25 +123,38 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
                             hypergraph::Bool=false)
     # Create the line graph for the given tn and pass it to quickbb to find a contraction 
     # plan.
-    lg, symbol_map = convert_to_line_graph(tn; use_tags=hypergraph)
-    tw, order = qxg.quickbb(lg; time=time, order=order)
+    lg, symbol_map = convert_to_line_graph(tn; use_hyperedges=hypergraph)
+    order, metadata = qxg.quickbb(lg; time=time, order=order)
 
     # Use the greedy treewidth deletion algorithm to select indices in tn to slice.
     scheme = qxg.greedy_treewidth_deletion(lg, num; 
                                            score_function=:direct_treewidth, 
                                            elim_order=order)
-    sliced_lg, edges_to_slice, modified_order, new_tw = scheme
+    sliced_lg, edges_to_slice, modified_orders, treewidths = scheme
 
     # Convert the contraction plan to an array of Index structs before returning.
-    modified_order = [symbol_map[index_symbol] for index_symbol in modified_order]
-    edges_to_slice = [symbol_map[index_symbol] for index_symbol in edges_to_slice]
+    modified_order = [symbol_map[edge_symbol] for edge_symbol in modified_orders[end]]
+    edges_to_slice = [symbol_map[edge_symbol] for edge_symbol in edges_to_slice]
     contraction_plan = order_to_contraction_plan(modified_order, tn)
 
-    # TODO: concatenating index arrays discards distinguishability of edges and hyperedges
-    # which may not be desirable. We may not want to slice hyperedges in the same way we 
-    # slice regular edges. 
-    edges_to_slice = vcat(edges_to_slice...)
-    edges_to_slice, contraction_plan
+    # Convert edges_to_slice to an array of Index structs to slice.
+    # TODO: I'm not confident there are no edge cases were this method for converting
+    # edges to index arrays doesn't work. For example, when there are two consecutive 
+    # 2-qubit gates sharing both a hyperedge and a normal edge. Would be nice if it could
+    # be made a bit cleaner also.
+    indices_to_slice = Array{Array{<:Index, 1}, 1}(undef, length(edges_to_slice))
+    for (i, edge) in enumerate(edges_to_slice)
+        indices = Array{Index, 1}()
+        for i in 1:length(edge)-1
+            for j in i+1:length(edge)
+                union!(indices, intersect(tn[edge[i]].indices, tn[edge[j]].indices))
+            end
+        end
+        indices_to_slice[i] = indices
+    end
+    indices_to_slice = vcat(indices_to_slice...)
+
+    indices_to_slice, contraction_plan
 end
 
 contraction_scheme(tnc::TensorNetworkCircuit, args...; kwargs...) = contraction_scheme(tnc.tn, args...; kwargs...)
@@ -183,11 +167,14 @@ contraction_scheme(tnc::TensorNetworkCircuit, args...; kwargs...) = contraction_
 import TensorOperations.optimaltree
 
 """
-    netcon(tensor_map::OrderedDict{Symbol, QXTensor}
+    netcon(tensor_map::OrderedDict{Symbol, <:Array{<:Index, 1}}
 
 Call the TensorOperations netcon implementation on the tensors in `tensor_map`.
+
+`tensor_map` is assumed to be a dictionary mapping tensor ids to arrays of indices connected
+to the corresponding tensor.
 """
-function netcon(tensor_map::OrderedDict{Symbol, QXTensor})
+function netcon(tensor_map::OrderedDict{Symbol, <:Array{<:Index, 1}})
     # Generate the arguments for the netcon method from the given network.
     tensor_indices, index_dims, tensor_labels = create_netcon_input(tensor_map)
 
@@ -195,31 +182,33 @@ function netcon(tensor_map::OrderedDict{Symbol, QXTensor})
     contraction_tree, cost = optimaltree(tensor_indices, index_dims)
 
     # Replace integers in contraction tree with node labels before returning
-    # _replace_leaf_integers_with_labels(contraction_tree, tensor_labels)
     plan, final_tensor_id = tree_to_contraction_plan(contraction_tree, tensor_labels)
     plan
 end
 
-netcon(tn::TensorNetwork) = netcon(OrderedDict(keys(tn) .=> values(tn)))
+netcon(tn::TensorNetwork) = netcon(OrderedDict(keys(tn) .=> inds.(values(tn))))
 netcon(tnc::TensorNetworkCircuit) = netcon(tnc.tn)
 
 """
-    create_netcon_input(tensor_map::OrderedDict{Symbol, QXTensor})
+    create_netcon_input(tensor_map::OrderedDict{Symbol, <:Array{<:Index, 1}})
 
 Create arguments for netcon to find the optimal contraction plan for the tensors
 contatined in `tensor_map`.
 """
-function create_netcon_input(tensor_map::OrderedDict{Symbol, QXTensor})
+function create_netcon_input(tensor_map::OrderedDict{Symbol, <:Array{<:Index, 1}})
     # Collect the indices and corresponding dimensions of the network into arrays.
     num_tensors = length(tensor_map)
 
+    # Allocate space for indices, dims and labels of tensors to contract.
     tensor_indices = Array{Array{Symbol, 1}, 1}(undef, num_tensors)
     tensor_dims = Array{Array{Int, 1}, 1}(undef, num_tensors)
     tensor_labels = Array{Symbol, 1}(undef, num_tensors)
 
-    for (i, (tensor_id, tensor)) in enumerate(tensor_map)
-        tensor_indices[i] = [index_to_symbol(ind) for ind in inds(tensor)]
-        tensor_dims[i] = [dim(ind) for ind in inds(tensor)]
+    index_ids = Dict{Index, Symbol}()
+    for (i, (tensor_id, tensor_inds)) in enumerate(tensor_map)
+        tensor_indices[i] = [get!(index_ids, ind, Symbol("ind_$(i)_$(j)")) 
+                            for (j, ind) in enumerate(tensor_inds)]
+        tensor_dims[i] = [dim(ind) for ind in tensor_inds]
         tensor_labels[i] = tensor_id
     end
 
@@ -241,50 +230,88 @@ end
 # **************************************************************************************** #
 
 """
-    order_to_contraction_plan(elimination_order::Array{<:Array{<:Index, 1}, 1}, 
-                              tn::TensorNetwork)
+    order_to_contraction_plan(elimination_order::Array{<:Array{Symbol, 1}, 1}, 
+                              tn::TensorNetwork)::Array{NTuple{3, Symbol}, 1}
 
 Convert the given edge elimination order into a contraction plan for `tn`.
 """
-function order_to_contraction_plan(elimination_order::Array{<:Array{<:Index, 1}, 1}, 
-                                   tn::TensorNetwork)
+function order_to_contraction_plan(elimination_order::Array{Array{Symbol, 1}, 1}, 
+                                   tn::TensorNetwork)::Array{NTuple{3, Symbol}, 1}
+    # An array to hold the contraction plan.
     plan = Array{NTuple{3, Symbol}, 1}()
-    # TODO: Might be best to have an option in copy to replace tensors with mocktensors here.
-    new_tn = copy(tn)
 
-    # Render each edge in the order into a contraction of tensors in tn.
-    for edge in elimination_order
-        # If the edge is a regular edge with two tensors attached, contract those tensors.
-        if length(edge) == 1
-            index = edge[1]
-            if haskey(new_tn.bond_map, index) && (length(new_tn[index]) == 2)
-                A_id, B_id = new_tn[index]
-                C_id = contract_pair!(new_tn, A_id, B_id)
-                append!(plan, [(A_id, B_id, C_id)])
+    # A dictionary to keep track of which tensors are replaced by which intermediate tensors
+    # at different stages of the contraction process. Initially, before any pairwise
+    # contractions, none of the tensors are replaced by intermediates, so all tensor ids are
+    # mapped to themselves.
+    intermediate_tensor_map = Dict{Symbol, Symbol}(keys(tn) .=> keys(tn))
+
+    # Convert each edge in the elimination order to a set of pairwise contractions and 
+    # append it to plan.
+    for (i, edge) in enumerate(elimination_order)
+        if length(edge) == 2
+            # For edges consisting of just two tensors, find the intermediates they belong
+            # to and add their pairwise contraction to the plan.
+            A_id = _get_intermediate_tensor(intermediate_tensor_map, edge[1])
+            B_id = _get_intermediate_tensor(intermediate_tensor_map, edge[2])
+            if !(A_id == B_id)
+                # id for the new intermediate created by contracting A_id and B_id.
+                I_id = Symbol("I$i")
+                append!(plan, [(A_id, B_id, I_id)])
+
+                # Update intermediate_tensor_map with new intermediate.
+                intermediate_tensor_map[A_id] = I_id
+                intermediate_tensor_map[B_id] = I_id
+                intermediate_tensor_map[I_id] = I_id
             end
 
-        # If the edge is a hyperedge, use netcon to find a contraction plan for the
-        # corresponding tensors and append it to the contraction plan for tn.
-        else
-            tensors = OrderedDict{Symbol, QXTensor}()
-            for index in edge
-                if haskey(new_tn, index)
-                    tensor_pair = new_tn[index]
-                    for t in tensor_pair
-                        tensors[t] = new_tn[t]
-                    end
+        elseif length(edge) > 2
+            # For edges with more than 2 tensors, collect all of the intermediate tensors
+            # that tensors in the edge belong to and find a contraction plan for them to
+            # append to plan.
+            tensors_to_contract = OrderedDict{Symbol, Array{Index, 1}}()
+            for t_id in edge
+                I_id = _get_intermediate_tensor(intermediate_tensor_map, t_id)
+                inds = tn[t_id].indices
+                tensors_to_contract[I_id] = symdiff(get(tensors_to_contract, I_id, []), inds)
+            end
+            if length(tensors_to_contract) > 1
+                # Check if netcon can be used on the goven set of tensors.
+                @assert length(tensors_to_contract) < 37 "Too many tensors for netcon to contract."
+                @assert any(prod.([dim.(inds) for inds in values(tensors_to_contract)]) .< 2^62) "Tensors are too big for netcon."
+
+                local_contraction_plan = netcon(tensors_to_contract)
+                append!(plan, local_contraction_plan)
+
+                # Update intermediate_tensor_map with new intermediates.
+                for (A_id, B_id, I_id) in local_contraction_plan
+                    intermediate_tensor_map[A_id] = I_id
+                    intermediate_tensor_map[B_id] = I_id
+                    intermediate_tensor_map[I_id] = I_id
                 end
             end
-            # TODO: should have a strategy available if netcon can't be used here.
-            @assert length(tensors) <= 36 "Netcon can only contract upto 36 tensors"
-            local_contraction_plan = netcon(tensors)
-            for (a, b, c) in local_contraction_plan
-                contract_pair!(new_tn, a, b, c)
-            end
-            append!(plan, local_contraction_plan)
         end
     end
     plan
+end
+
+"""
+    _get_intermediate_tensor(intermediate_tensor_map::Dict{Symbol, Symbol}, t_id::Symbol)::Symbol
+
+Return the id of the intermediate tensor of which the tensor `t_id` is a factor.
+
+During a tensor network contraction, tensors and intermediate tensors are contracted
+together and replaced by the result. The dictionary `intermediate_tensor_map` is 
+assumed to describe which intermediate tensor has replaced a given tensor during a 
+contraction of a tensor network.
+"""
+function _get_intermediate_tensor(intermediate_tensor_map::Dict{Symbol, Symbol}, t_id::Symbol)::Symbol
+    while true 
+        I_id = intermediate_tensor_map[t_id]
+        # If t_id = I_id then t_id has not been replaced by an intermediate tensor yet.
+        (t_id == I_id) && return I_id
+        t_id = I_id
+    end
 end
 
 """
