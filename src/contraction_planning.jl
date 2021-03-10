@@ -1,6 +1,6 @@
 import QXGraph; qxg = QXGraph
 import LightGraphs
-using QXTn
+import QXTn
 
 export convert_to_graph, convert_to_line_graph
 export quickbb_contraction_plan, contraction_scheme
@@ -76,17 +76,21 @@ convert_to_line_graph(tnc::TensorNetworkCircuit; kwargs...) = convert_to_line_gr
 Use QuickBB to create a contraction plan for 'tn'.
 
 # Keywords
-- `time::Integer=0`: the number of second to run the quickbb binary for.
-- `order::Symbol=:_`: the branching order to be used by quickbb (:random or :min_fill).
+- `time::Integer=120`: the number of second to run the quickbb binary for.
+- `order::Symbol=:min_fill`: the branching order to be used by quickbb (:random or :min_fill).
 - `hypergraph::Bool=false`: set if hyperedges exist in `tn` and should be accounted for.
 """
 function quickbb_contraction_plan(tn::TensorNetwork; 
                                   time::Integer=120, 
-                                  order::Symbol=:_,
+                                  order::Symbol=:min_fill,
                                   hypergraph::Bool=false)
     # Convert tn to a line graph and pass it to quickbb to find an elimination order.
     lg, symbol_map = convert_to_line_graph(tn, use_hyperedges=hypergraph)
-    order, metadata = qxg.quickbb(lg; time=time, order=order)
+    if qxg.nv(lg) > 1 # quickkbb fails on trivial graphs with 1 vertex.
+        order, metadata = qxg.quickbb(lg; time=time, order=order)
+    elseif qxg.nv(lg) == 1
+        order = qxg.labels(lg)
+    end
 
     # Convert the elimination order to an array of Index structs in tn.
     order = [symbol_map[index_symbol] for index_symbol in order]
@@ -96,6 +100,45 @@ function quickbb_contraction_plan(tn::TensorNetwork;
 end
 
 quickbb_contraction_plan(tnc::TensorNetworkCircuit; kwargs...) = quickbb_contraction_plan(tnc.tn; kwargs...)
+
+"""
+    quickbb_contraction_plan(tensors::OrderedDict{Symbol, Array{Index, 1}})
+
+Use QuickBB to create a contraction plan for the set of tensors described by the OrderedDict 
+`tensors`.
+
+The keys of `tensors` are assumed to be ids/names of tensors and the values are arrays of
+indices belonging to the corrseponding tensor.
+
+# Keywords
+- `time::Integer=120`: the number of second to run the quickbb binary for.
+- `order::Symbol=:_`: the branching order to be used by quickbb (:random or :min_fill).
+"""
+function quickbb_contraction_plan(tensors::OrderedDict{Symbol, Array{Index, 1}}; 
+                                  time::Integer=120, 
+                                  order::Symbol=:min_fill)
+    # Create a graph for the tensors and convert it to to a line graph.
+    tensor_ids = collect(keys(tensors))
+    g = qxg.LabeledGraph(length(tensor_ids))
+    for i = 1:length(tensor_ids)-1
+        for j = i+1:length(tensor_ids)
+            if !isempty(intersect(tensors[tensor_ids[i]], tensors[tensor_ids[j]]))
+                qxg.add_edge!(g, i, j)
+            end
+        end
+    end
+    lg = qxg.line_graph(g)
+
+    # Call quickbb to find a vertex elimination order for the line graph.
+    order, metadata = qxg.quickbb(lg; time=time, order=order)
+
+    # Convert the elimination order to an array of tensor symbol pairs.
+    order = [parse.(Int, split(String(lg_vertex), '_')) for lg_vertex in order]
+    order = [[tensor_ids[edge[1]], tensor_ids[edge[2]]] for edge in order]
+
+    # Convert the elimination order into a contraction plan.
+    order_to_contraction_plan(order, tensors)
+end
 
 
 
@@ -133,9 +176,10 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
     sliced_lg, edges_to_slice, modified_orders, treewidths = scheme
 
     # Convert the contraction plan to an array of Index structs before returning.
-    modified_order = [symbol_map[edge_symbol] for edge_symbol in modified_orders[end]]
+    contraction_order = !isempty(modified_orders) ? modified_orders[end] : order
+    contraction_order = [symbol_map[edge_symbol] for edge_symbol in contraction_order]
     edges_to_slice = [symbol_map[edge_symbol] for edge_symbol in edges_to_slice]
-    contraction_plan = order_to_contraction_plan(modified_order, tn)
+    contraction_plan = order_to_contraction_plan(contraction_order, tn)
 
     # Convert edges_to_slice to an array of Index structs to slice.
     # TODO: I'm not confident there are no edge cases were this method for converting
@@ -231,12 +275,18 @@ end
 
 """
     order_to_contraction_plan(elimination_order::Array{<:Array{Symbol, 1}, 1}, 
-                              tn::TensorNetwork)::Array{NTuple{3, Symbol}, 1}
+                              tn::Union{TensorNetwork, OrderedDict{Symbol, Array{Index, 1}}}
+                              )::Array{NTuple{3, Symbol}, 1}
 
 Convert the given edge elimination order into a contraction plan for `tn`.
+
+`tn` can be a TensorNetwork or an OrderedDict describing a set of tensors, in which case
+the keys of `tn` are assumed to be tensor ids/names and the values are arrays containing the
+indices of the corresponding tensor.
 """
 function order_to_contraction_plan(elimination_order::Array{Array{Symbol, 1}, 1}, 
-                                   tn::TensorNetwork)::Array{NTuple{3, Symbol}, 1}
+                                   tn::Union{TensorNetwork, OrderedDict{Symbol, Array{Index, 1}}}
+                                   )::Array{NTuple{3, Symbol}, 1}
     # An array to hold the contraction plan.
     plan = Array{NTuple{3, Symbol}, 1}()
 
@@ -266,21 +316,24 @@ function order_to_contraction_plan(elimination_order::Array{Array{Symbol, 1}, 1}
             end
 
         elseif length(edge) > 2
-            # For edges with more than 2 tensors, collect all of the intermediate tensors
-            # that tensors in the edge belong to and find a contraction plan for them to
-            # append to plan.
+            # For edges with more than 2 tensors, collect all of the tensors and 
+            # intermediate tensors that belong to the edge and find a contraction plan for 
+            # them. Append the contraction this plan to plan.
             tensors_to_contract = OrderedDict{Symbol, Array{Index, 1}}()
             for t_id in edge
                 I_id = _get_intermediate_tensor(intermediate_tensor_map, t_id)
-                inds = tn[t_id].indices
+                inds = typeof(tn) <: TensorNetwork ? QXTn.inds(tn[t_id]) : tn[t_id]
                 tensors_to_contract[I_id] = symdiff(get(tensors_to_contract, I_id, []), inds)
             end
             if length(tensors_to_contract) > 1
-                # Check if netcon can be used on the goven set of tensors.
-                @assert length(tensors_to_contract) < 37 "Too many tensors for netcon to contract."
-                @assert any(prod.([dim.(inds) for inds in values(tensors_to_contract)]) .< 2^62) "Tensors are too big for netcon."
-
-                local_contraction_plan = netcon(tensors_to_contract)
+                # Check if netcon can be used on the given set of tensors. If not, use
+                # a fallback method to find a contraction plan.
+                tensor_sizes = prod.([dim.(inds) for inds in values(tensors_to_contract)])
+                if length(tensors_to_contract) < 37 && any(tensor_sizes .< 2^62)
+                    local_contraction_plan = netcon(tensors_to_contract)
+                else
+                    local_contraction_plan = quickbb_contraction_plan(tensors_to_contract)
+                end
                 append!(plan, local_contraction_plan)
 
                 # Update intermediate_tensor_map with new intermediates.

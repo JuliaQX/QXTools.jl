@@ -1,5 +1,6 @@
 using QXSim.Circuits
 using QXGraph
+using QXZoo
 using QXTn
 
 using LightGraphs
@@ -68,6 +69,11 @@ end
     @test length(edges_to_slice) == 3 # Should have 3 edges to slice
     @test length(plan) == length(tnc) - 1 - 3 # modified plan should be smaller.
 
+    # Test contraction scheme function
+    edges_to_slice, plan = contraction_scheme(tnc, 0)
+    @test length(edges_to_slice) == 0 # Should have 0 edges to slice
+    @test length(plan) == length(tnc) - 1
+
     # Test contraction plan creation with hypergraph.
     circ = create_test_circuit()
     tnc = convert_to_tnc(circ, no_input=false, no_output=false, decompose=false)
@@ -79,6 +85,17 @@ end
     # Should have 5 indices to slice (1 hyperedge with 2 indices)
     @test length(edges_to_slice) == 5
     @test length(plan) == 3 # modified plan should be smaller.
+
+    # Create a network consisting of one hyperedge which is too large for netcon to 
+    # contract. Test if fallback method for contracting large hyperedges produces a valid
+    # contraction plan.
+    circ = Circuit.Circ(1)
+    for i in 1:40
+        Circuit.add_gatecall!(circ, DefaultGates.z(1))
+    end
+    tnc = convert_to_tnc(circ, no_input=false, no_output=false, decompose=false)
+    plan = quickbb_contraction_plan(tnc; hypergraph=true)
+    @test length(plan) == 41
 end
 
 @testset "Test netcon contraction" begin
