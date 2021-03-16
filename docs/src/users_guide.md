@@ -21,7 +21,7 @@ file is as follows
 ```
 amplitudes:
   - "00"
-  - "01"  
+  - "01"
 partitions:
   parameters:
     v2: 2
@@ -72,7 +72,7 @@ instructions work.
 An example of the DSL generated for the contraction of a two qubit GHZ circuit looks like.
 
 ```
-# version: 0.1
+# version: 0.2
 outputs 2
 load t1 data_1
 load t2 data_2
@@ -87,22 +87,22 @@ view t12_$v2 t12 1 $v2
 del t12
 view t14_$v1_$v2 t14_$v1 3 $v2
 del t14_$v1
-ncon t15 $o1 1 t14_$v1_$v2 -1,1,-2
+ncon t15 2,3 $o1 1 t14_$v1_$v2 2,1,3
 del $o1
 del t14_$v1_$v2
-ncon t16 t8 1 t12_$v2 -1,1
+ncon t16 2 t8 1 t12_$v2 2,1
 del t8
 del t12_$v2
-ncon t17 t9 1 t13_$v1 -1,1,-2
+ncon t17 2,3 t9 1 t13_$v1 2,1,3
 del t9
 del t13_$v1
-ncon t18 $o2 1 t17 1,-1
+ncon t18 2 $o2 1 t17 1,2
 del $o2
 del t17
-ncon t19 t15 -1,1 t16 1
+ncon t19 1 t15 1,2 t16 2
 del t15
 del t16
-ncon t20 t19 1 t18 1
+ncon t20 0 t19 1 t18 1
 del t19
 del t18
 save t20 output
@@ -166,18 +166,20 @@ The `del` instructions marks a particular tensor for deletion and indicates that
 The `ncon` instruction specificies a pairwise contraction of tensors. An example contraction command is as follows
 
 ```
-ncon t15 $o1 1 t14_$v1_$v2 -1,1,-2
+ncon t15 2,3 $o1 1 t14_$v1_$v2 2,1,3
 ```
 
-Which indicates that the `$o1` tensor should be contracted with the `t14_$v1_v2` tensor to get the `t15` tensor. The contraction should be performed over the only rank of the `$o1` tensor and the second rank of the `t14_$v1_$v2` tensor. The notation used
-for specifying which indices to contract over uses the convention that negative indices indicate that this rank will remain and 
-repeated positive indices indicate ranks that are contracted over, similar to Einstein notation. For the case where one of the
-tensors is a scalar a `0` is used as a placeholder for the indices. For example if `t1` is a scalar tensor and `t2` is a matrix,
+Which indicates that the `$o1` tensor should be contracted with the `t14_$v1_v2` tensor to get the `t15` tensor. The contraction should be performed over the only rank of the `$o1` tensor and the second rank of the `t14_$v1_$v2` tensor. Einstein summation notation is used for for specifying which indices to contract over. This convention uses repeated indices on the right hand side to indicate that those indices should be contracted over. In the above the `1` index appears twice on the right hand side which indicates that this index should be contracted over.
+For the case where one of the tensors is a scalar, a `0` is used as a placeholder for the indices.
+For example if `t1` is a scalar tensor and `t2` is a matrix,
 the multiplication of the matrix by the scalar can be expressed as
 
 ```
-ncon t3 t1 0 t2 -1,-2
+ncon t3 1,2 t1 0 t2 1,2
 ```
+
+Batched contractions (sometimes called hyper-contractions) are also supported. This is where the same index
+is repeated on the right hand side and also appears on the left hand side.
 
 #### Save
 

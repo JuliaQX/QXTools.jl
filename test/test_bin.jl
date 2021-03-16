@@ -14,7 +14,7 @@ include("../bin/prepare_rqc_simulation_files.jl")
         Logging.with_logger(Logging.NullLogger()) do # suppress logging
             main(args)
         end
-        @test all([isfile(prefix * suffix) for suffix in [".tl", ".jld", ".yml"]])
+        @test all([isfile(prefix * suffix) for suffix in [".qx", ".jld2", ".yml"]])
 
         params = YAML.load_file(prefix * ".yml")
         @test length(params["amplitudes"]) == 2^9
@@ -28,7 +28,7 @@ include("../bin/prepare_rqc_simulation_files.jl")
         Logging.with_logger(Logging.NullLogger()) do # suppress logging
             main(args)
         end
-        @test all([isfile(prefix * suffix) for suffix in [".tl", ".jld", ".yml"]])
+        @test all([isfile(prefix * suffix) for suffix in [".qx", ".jld2", ".yml"]])
 
         params = YAML.load_file(prefix * ".yml")
         @test length(params["amplitudes"]) <= N

@@ -6,9 +6,6 @@ import DataStructures: OrderedDict
 # utilities circuit manipulation
 include("circuits/circuits.jl")
 
-# data structions and functions tensor networks
-# include("tn/tn.jl")
-
 include("tn_conversion.jl")
 
 include("contraction_planning.jl")

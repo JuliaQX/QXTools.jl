@@ -6,7 +6,7 @@ QXSim is a Julia package and can be installed using Julia's inbuilt package mana
 
 ```
 import Pkg
-Pkg.install("QXSim")
+Pkg.add("QXSim")
 ```
 
 ## Example usage
@@ -49,8 +49,8 @@ generate_simulation_files(circ, 2, "ghz_3", 4)
 ```
 
 will generate the files:
-- `ghz_3.tl`: A DSL file with instructions
-- `ghz_3.jld`: A data file with tensors
+- `ghz_3.qx`: A DSL file with instructions
+- `ghz_3.jld2`: A data file with tensors
 - `ghz_3.yml`: A parameter file with parameters controlling the simulation
 
 These can be used as input to QXRun to run the simulation on HPC clusters to calculate the amplitudes for 4 bitstrings sampled uniformly.

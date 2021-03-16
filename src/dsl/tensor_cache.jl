@@ -1,4 +1,4 @@
-import JLD
+import JLD2
 
 export TensorCache, save_cache
 
@@ -79,11 +79,24 @@ end
 Base.length(tc::TensorCache{T}) where T = length(tc.key_dim_map)
 
 """
-    save_cache(filename::String, tc::TensorCache{T}) where T
+    save_cache(tc::TensorCache{T}, io::JLD2.JldFile) where T
+
+Function to save tensor data to a JLD file using symbol names as keys
+"""
+function save_cache(tc::TensorCache{T}, io::JLD2.JLDFile) where T
+    for key in keys(tc.key_dim_map)
+        write(io, "$(key)", tc[key])
+    end
+end
+
+"""
+    save_cache(tc::TensorCache{T}, filename::String) where T
 
 Function to save tensor data to a JLD file using symbol names as keys
 """
 function save_cache(tc::TensorCache{T}, filename::String) where T
-    if splitext(filename)[2] != ".jld" throw(error("Filename must have suffix \".jld\"")) end
-    JLD.save(filename, vcat([[String(key), tc[key]] for key in keys(tc.key_dim_map)]...)...)
+    if splitext(filename)[2] != ".jld2" throw(error("Filename must have suffix \".jld2\"")) end
+    jldopen(filename, "a+") do io
+        save_cache(tc, io)
+    end
 end

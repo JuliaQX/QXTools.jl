@@ -14,7 +14,7 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "Getting Started" => "getting_started.md",
-        "User's Guide" => "users_guide.md",            
+        "User's Guide" => "users_guide.md",
         "Tutorials" => [],
         "LICENSE" => "license.md"
     ],

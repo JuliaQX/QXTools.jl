@@ -55,12 +55,68 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
         amplitudes = amplitudes_uniform(qubits(tnc), seed, num_amplitudes)
     end
 
+    bond_groups_to_slice = expand_slice_bonds_to_hyperindices(tnc.tn, bonds_to_slice)
+
     @info("Write parameter file for retrieving $num_amplitudes amplitudes")
-    generate_parameter_file(tnc, output_prefix, bonds_to_slice, amplitudes, seed)
+    generate_parameter_file(output_prefix, bond_groups_to_slice, amplitudes)
 
     @info("Prepare DSL and data files")
-    generate_dsl_files(tnc, output_prefix, plan, bonds_to_slice)
+    generate_dsl_files(tnc, output_prefix, plan, bond_groups_to_slice, force=true)
 end
+
+"""
+    _find_hyper_edges(tn::TensorNetwork, bond::Index)
+
+Given a tensor network and a bond in the network, find all bonds that are related via hyper edge
+relations. Involves recurisively checking bonds connected to neighbouring tensors of any newly
+related edges found. Returns an array in all edges in the group including the intial edge.
+"""
+function _find_hyper_edges(tn::TensorNetwork, bond::Index)
+    visited_tensors = Set{Symbol}()
+    tensors_to_visit = Set{Symbol}()
+    push!.([tensors_to_visit], tn[bond])
+    related_edges = Set{Index}([bond])
+    while length(tensors_to_visit) > 0
+        tensor_sym = pop!(tensors_to_visit)
+        push!(visited_tensors, tensor_sym)
+        for g in hyperindices(tn[tensor_sym])
+            if length(intersect(related_edges, g)) > 0
+                for e in setdiff(union(related_edges, g), intersect(related_edges, g))
+                    push!(related_edges, e)
+                    for t in tn[e]
+                        if !(t in visited_tensors)
+                            push!(tensors_to_visit, t)
+                        end
+                    end
+                end
+            end
+        end
+    end
+    collect(related_edges)
+end
+
+"""
+    expand_slice_bonds_to_hyperindices(tn::TensorNetwork, bonds_to_slice::Array{<: Index, 1})
+
+Given a list of bonds to slice it is necessary to expand these to include bonds in the same hyper edge group. In
+this function for each of the bonds to slice we identify their hyper indices if any and return an array of
+groups of hyper edges to slice.
+"""
+function expand_slice_bonds_to_hyperindices(tn::TensorNetwork, bonds_to_slice::Array{<: Index, 1})
+    bond_groups = Array{Array{<:Index, 1}, 1}()
+    if length(bonds_to_slice) > 0
+        push!(bond_groups, _find_hyper_edges(tn, bonds_to_slice[1]))
+        if length(bonds_to_slice) > 1
+            for b in bonds_to_slice[2:end]
+                if !any([b in g for g in bond_groups])
+                    push!(bond_groups, _find_hyper_edges(tn, b))
+                end
+            end
+        end
+    end
+    bond_groups
+end
+
 
 """
     single_amplitude(tnc::TensorNetworkCircuit, plan::Array{<:Index, 1}, amplitude::Union{String, Nothing}=nothing)
@@ -98,6 +154,12 @@ function run_simulation(circ::QXZoo.Circuit.Circ;
 
     @info("Get contraction plan and edges to slice using qxgraph")
     plan = quickbb_contraction_plan(tnc)
+
+    # to prevent memory issues don't attempt to get all amplitudes for large numbers of qubits
+    # unless specifically demanded
+    if num_amplitudes === nothing && qubits(tnc) > 30
+        num_amplitudes = 1000
+    end
 
     if num_amplitudes === nothing
         amplitudes = amplitudes_all(qubits(tnc))

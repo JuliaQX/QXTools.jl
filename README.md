@@ -24,7 +24,7 @@ QXSim is a Julia package and can be installed using Julia's inbuilt package mana
 
 ```
 import Pkg
-Pkg.install("QXSim")
+Pkg.add("QXSim")
 ```
 
 # Example usage
