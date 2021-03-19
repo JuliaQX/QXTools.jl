@@ -63,7 +63,7 @@ network to calculate observables of interest in the form of a sequence of instru
 which act on individual tensors. This makes it possible to separate the development
 of the high performance distributed tensor network computation code from that of the
 higher level contraction planning, circuit and and network manipulation code. For QXSim
-DSL files the ".tl" suffix is used for "Tensor Language". We will first show a very
+DSL files the ".qx" suffix is used for "Tensor Language". We will first show a very
 simple example of a QXSim DSL file and then descibe in detail how each of the
 instructions work.
 
@@ -72,47 +72,64 @@ instructions work.
 An example of the DSL generated for the contraction of a two qubit GHZ circuit looks like.
 
 ```
-# version: 0.2
+# version: 0.2.0
+# Determination of contraction plan :
+#   Method used : quickbb
+#   Time allocated : 120
+#   Ordering used : min_fill
+#   Lower bound flag used : false
+#   Returned metadata :
+#     treewidth : 2
+#     is_optimal : true
+#     time : 0.000147
+#   Hypergraph used : false
+#   Hyperedge contraction method : Netcon where possible, min fill heuristic otherwise.
+# Slicing :
+#   Method used : greedy treewidth deletion
+#   Edges sliced : 2
+#   Score fucntion used : direct_treewidth
+#   Treewidths after slicing consecutive edges : [1, 1]
 outputs 2
 load t1 data_1
 load t2 data_2
 load t3 data_3
 load t4 data_4
 load t5 data_4
-view t13_$v1 t13 3 $v1
-del t13
-view t14_$v1 t14 1 $v1
-del t14
-view t12_$v2 t12 1 $v2
-del t12
-view t14_$v1_$v2 t14_$v1 3 $v2
-del t14_$v1
-ncon t15 2,3 $o1 1 t14_$v1_$v2 2,1,3
+view t2_$v1 t2 3 $v1
+del t2
+view t3_$v1 t3 1 $v1
+del t3
+view t1_$v1 t1 1 $v1
+del t1
+view $o1_$v1 $o1 1 $v1
 del $o1
-del t14_$v1_$v2
-ncon t16 2 t8 1 t12_$v2 2,1
-del t8
-del t12_$v2
-ncon t17 2,3 t9 1 t13_$v1 2,1,3
-del t9
-del t13_$v1
-ncon t18 2 $o2 1 t17 1,2
+ncon I1 2 t3_$v1 2 $o1_$v1 2
+del t3_$v1
+del $o1_$v1
+ncon I2 1 t1_$v1 1,2 t4 2
+del t1_$v1
+del t4
+ncon I3 1,3 t2_$v1 1,2,3 t5 2
+del t2_$v1
+del t5
+ncon I4 2 I3 1,2 $o2 1
+del I3
 del $o2
-del t17
-ncon t19 1 t15 1,2 t16 2
-del t15
-del t16
-ncon t20 0 t19 1 t18 1
-del t19
-del t18
-save t20 output
+ncon t8 2 I1 2 I2 2
+del I1
+del I2
+ncon t9 0 t8 1 I4 1
+del t8
+del I4
+save t9 output
 ```
 
 ### DSL Format and Instructions
 
 The DSL file is a regular ASCII text file with one instruction per line. Lines beginning with `#` are comments which are
 ignored (except for the first line which contains version information). The first line should have a version string
-which specifies the format version. Symbols prefixed by a dollar sign indicate variables which are take different values
+which specifies the format version. Comments following the first line contain metadata about the methods used
+to determine the contraction plan used and which edges to slice. Symbols prefixed by a dollar sign indicate variables which are take different values
 for each iteration of the computation. An explanation of each instruction follows
 
 #### Outputs

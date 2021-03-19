@@ -47,7 +47,7 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
     @info("Graph created: $(g)")
 
     @info("Get contraction plan and edges to slice using qxgraph")
-    bonds_to_slice, plan = contraction_scheme(tnc.tn, number_bonds_to_slice)
+    bonds_to_slice, plan, metadata = contraction_scheme(tnc.tn, number_bonds_to_slice)
 
     if num_amplitudes === nothing
         amplitudes = amplitudes_all(qubits(tnc))
@@ -61,7 +61,7 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
     generate_parameter_file(output_prefix, bond_groups_to_slice, amplitudes)
 
     @info("Prepare DSL and data files")
-    generate_dsl_files(tnc, output_prefix, plan, bond_groups_to_slice, force=true)
+    generate_dsl_files(tnc, output_prefix, plan, bond_groups_to_slice; force=true, metadata=metadata)
 end
 
 """

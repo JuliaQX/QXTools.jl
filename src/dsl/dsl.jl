@@ -20,16 +20,34 @@ function write_version_header(io::IO)
 end
 
 """
+    write_metadata_header(io::IO, metadata::OrderedDict, indent::String="")
+
+Function to write contraction plan metadata to DSL file.
+"""
+function write_metadata_header(io::IO, metadata::OrderedDict, indent::String="")
+    for (k, v) in metadata
+        if typeof(v) <: OrderedDict
+            write(io, "# $(indent)$k :\n")
+            write_metadata_header(io, v, indent * "  ")
+        else
+            write(io, "# $(indent)$k : $(v)\n")
+        end
+    end
+end
+
+"""
     write_dsl_load_header(tnc::TensorNetworkCircuit, dsl_io::IO, data_io::JLD2.JldFile)
 
 Write the header part of the dsl file which loads tensors from their corresponding data symbols
 and also prepares the data file
 """
-function write_dsl_load_header(tnc::TensorNetworkCircuit, dsl_io::IO, data_io::JLD2.JLDFile)
+function write_dsl_load_header(tnc::TensorNetworkCircuit, dsl_io::IO, data_io::JLD2.JLDFile;
+                               metadata::OrderedDict=OrderedDict())
     # create a tensor cache for saving intitial tensor data
     tc = TensorCache()
 
     write_version_header(dsl_io)
+    write_metadata_header(dsl_io, metadata)
 
     # iterate over tensors and add to TensorCache
     write(dsl_io, "outputs $(qubits(tnc))\n")
@@ -49,8 +67,9 @@ end
     generate_dsl_files(tnc::TensorNetworkCircuit,
                        prefix::String,
                        plan::Array{NTuple{3, Symbol}, 1},
-                       sliced_bond_groups::Array{<:Array{<:Index, 1}, 1},
-                       force::Bool=false)
+                       sliced_bond_groups::Array{<:Array{<:Index, 1}, 1};
+                       force::Bool=true,
+                       metadata::Dict{String, Any}=Dict{String, Any}())
 
 Function to create a dsl and data files to contracting the given tensor network circuit
 with the plan provided
@@ -59,7 +78,8 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
                             prefix::String,
                             plan::Array{NTuple{3, Symbol}, 1},
                             sliced_bond_groups::Array{<:Array{<:Index, 1}, 1};
-                            force::Bool=true)
+                            force::Bool=true,
+                            metadata::OrderedDict=OrderedDict())
 
     dsl_filename = "$(prefix).qx"
     data_filename = "$(prefix).jld2"
@@ -69,7 +89,7 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
     @assert force || !isfile(data_filename) "Error $(data_filename) already exists"
     open(dsl_filename, "w") do dsl_io; jldopen(data_filename, "w") do data_io
         # write header of DSL file with data loading
-        write_dsl_load_header(tnc, dsl_io, data_io)
+        write_dsl_load_header(tnc, dsl_io, data_io; metadata=metadata)
 
         # we create a network with mocked tensors
         tnc_copy = copy(tnc)

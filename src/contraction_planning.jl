@@ -111,11 +111,11 @@ The keys of `tensors` are assumed to be ids/names of tensors and the values are 
 indices belonging to the corrseponding tensor.
 
 # Keywords
-- `time::Integer=120`: the number of second to run the quickbb binary for.
+- `time::Integer=0`: the number of second to run the quickbb binary for.
 - `order::Symbol=:_`: the branching order to be used by quickbb (:random or :min_fill).
 """
 function quickbb_contraction_plan(tensors::OrderedDict{Symbol, Array{Index, 1}};
-                                  time::Integer=120,
+                                  time::Integer=0,
                                   order::Symbol=:min_fill)
     # Create a graph for the tensors and convert it to to a line graph.
     tensor_ids = collect(keys(tensors))
@@ -154,26 +154,45 @@ for the remaining tensor network.
 
 # Keywords
 - `time::Integer=120`: number of seconds to run quickbb when looking for contraction plan.
-- `order::Symbol=:_`: the branching order to be used by quickbb (:random or :min_fill).
+- `qbb_order::Symbol=:min_fill`: the branching order to be used by quickbb (:random or :min_fill).
+- `lb::Bool=false`: set if a lowerbound for the treewidth should be computed.
 - `score_function::Symbol=:direct_treewidth`: function to maximise when selecting vertices
                                             to remove. (:degree, :direct_treewidth)
-- `hypergraph::Bool=false`: set if hyperedges exist in `tn` and should be accounted for.
+- `hypergraph::Bool=true`: set if hyperedges exist in `tn` and should be accounted for.
 """
 function contraction_scheme(tn::TensorNetwork, num::Integer;
                             time::Integer=120,
-                            order::Symbol=:min_fill,
+                            qbb_order::Symbol=:min_fill,
+                            lb::Bool=false,
                             score_function::Symbol=:direct_treewidth,
-                            hypergraph::Bool=false)
+                            hypergraph::Bool=true)
     # Create the line graph for the given tn and pass it to quickbb to find a contraction
     # plan.
     lg, symbol_map = convert_to_line_graph(tn; use_hyperedges=hypergraph)
-    order, metadata = qxg.quickbb(lg; time=time, order=order)
+    order, qbb_metadata = qxg.quickbb(lg; time=time, order=qbb_order, lb=lb)
+    
+    # Create a dictionary for metadata regarding the contraction plan.
+    contraction_metadata = OrderedDict{String, Any}()
+    contraction_metadata["Method used"] = "quickbb"
+    contraction_metadata["Time allocated"] = time
+    contraction_metadata["Ordering used"] = qbb_order
+    contraction_metadata["Lower bound flag used"] = lb
+    contraction_metadata["Returned metadata"] = OrderedDict(qbb_metadata)
+    contraction_metadata["Hypergraph used"] = hypergraph
+    contraction_metadata["Hyperedge contraction method"] = "Netcon where possible, min fill heuristic otherwise."
 
     # Use the greedy treewidth deletion algorithm to select indices in tn to slice.
     scheme = qxg.greedy_treewidth_deletion(lg, num;
-                                           score_function=:direct_treewidth,
+                                           score_function=score_function,
                                            elim_order=order)
     sliced_lg, edges_to_slice, modified_orders, treewidths = scheme
+
+    # Create a dictionary for metadata regarding sliced edges.
+    slicing_metadata = OrderedDict{String, Any}()
+    slicing_metadata["Method used"] = "greedy treewidth deletion"
+    slicing_metadata["Edges sliced"] = num
+    slicing_metadata["Score fucntion used"] = score_function
+    slicing_metadata["Treewidths after slicing consecutive edges"] = treewidths
 
     # Convert the contraction plan to an array of Index structs before returning.
     contraction_order = !isempty(modified_orders) ? modified_orders[end] : order
@@ -198,7 +217,11 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
     end
     indices_to_slice = vcat(indices_to_slice...)
 
-    indices_to_slice, contraction_plan
+    metadata = OrderedDict{String, Any}()
+    metadata["Determination of contraction plan"] = contraction_metadata
+    metadata["Slicing"] = slicing_metadata
+
+    indices_to_slice, contraction_plan, metadata
 end
 
 contraction_scheme(tnc::TensorNetworkCircuit, args...; kwargs...) = contraction_scheme(tnc.tn, args...; kwargs...)

@@ -65,7 +65,7 @@ end
     tnc = convert_to_tnc(circ, no_input=false, no_output=false, decompose=false)
 
     # Test contraction scheme function
-    edges_to_slice, plan = contraction_scheme(tnc, 3)
+    edges_to_slice, plan = contraction_scheme(tnc, 3; hypergraph=false)
     @test length(edges_to_slice) == 3 # Should have 3 edges to slice
     @test length(plan) == length(tnc) - 1 - 3 # modified plan should be smaller.
 
