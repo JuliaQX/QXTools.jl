@@ -49,7 +49,6 @@ end
     end
 end
 
-
 @testset "Test write ncon command" begin
     # test case where 2 tensors share one edges which
     # is in the hyper edges of both tensors
@@ -77,6 +76,23 @@ end
     cmd = String(take!(io))
     @test cmd == "ncon t3 0 t1 1 t2 1,1\n"
 
+    # Test case where A has two sets of hyper indices
+    # linked by a hyper index set in B
+    tn = TensorNetwork()
+    a_i = [Index(2) for _ in 1:9]
+    b_i = [a_i[7], Index(2), Index(2), a_i[2]]
+
+    a_hyper = [[3, 4], [5, 6], [7,8]]
+    a_hyper_i = [a_i[x] for x in a_hyper]
+    b_hyper = [[1, 4], [2, 3]]
+    b_hyper_i = [b_i[x] for x in b_hyper]
+
+    push!(tn, QXTensor(a_i, a_hyper))
+    push!(tn, QXTensor(b_i, b_hyper))
+
+    io = IOBuffer()
+    QXSim.write_ncon_command(io, tn, :t1, :t2, :t3)
+    @test String(take!(io)) == "ncon t3 1,3,5,2,9,10 t1 1,2,3,5,2,9 t2 2,10\n"
 end
 
 @testset "Test write view command" begin
@@ -91,5 +107,5 @@ end
 
     cmd = String(take!(io))
     @test cmd == "view t1v1 t1 2 v1\n"
-
 end
+

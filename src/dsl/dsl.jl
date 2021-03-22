@@ -175,9 +175,8 @@ function write_ncon_command(io::IO, tn::TensorNetwork, A_sym::Symbol, B_sym::Sym
 
     # update index map to map indices which belong to the same hyper index group
     # to the same number
-    function update_all_index_map(sym)
-        for group in hyperindices(tn[sym])
-            @assert length(group) > 1 "Expect hyperedge groups to have at least 2 indices for $sym"
+    function update_all_index_map(hyper_index_groups)
+        for group in hyper_index_groups
             if length(intersect(group, common_indices)) > 0
                 ref_index = sort(intersect(group, common_indices), by=x->all_index_map[x])[1]
             else
@@ -190,8 +189,30 @@ function write_ncon_command(io::IO, tn::TensorNetwork, A_sym::Symbol, B_sym::Sym
         end
     end
 
-    update_all_index_map(A_sym)
-    update_all_index_map(B_sym)
+    """Given two sets of groups of indices produce a set which combines these
+    merging any groups that have common indices"""
+    function join_edge_groups(a_groups, b_groups)
+        final_groups = Array{Index, 1}[]
+        remaining_groups = [a_groups..., b_groups...]
+        while length(remaining_groups) > 0
+            group = popat!(remaining_groups, 1)
+            to_delete = Array{Index, 1}[]
+            for other_group in remaining_groups
+                if length(intersect(group, other_group)) > 0
+                    group = union(group, other_group)
+                    push!(to_delete, other_group)
+                end
+            end
+            for g in to_delete
+                deleteat!(remaining_groups, findfirst(x -> x == g, remaining_groups))
+            end
+            push!(final_groups, group)
+        end
+        final_groups
+    end
+
+    update_all_index_map(join_edge_groups(hyperindices(tn[A_sym]), hyperindices(tn[B_sym])))
+
 
     C_labels = length(C_indices) == 0 ? "0" : join(unique(getindex.([all_index_map], C_indices)), ",")
 
@@ -252,11 +273,12 @@ along with the amplitudes to contract for.
 function generate_parameter_file(filename_prefix::String,
                                  sliced_bond_groups::Array{<:Array{<:Index, 1}, 1},
                                  amplitudes::Union{Base.Generator, <: AbstractArray})
-    partition_dims = Dict{String, Int64}()
+    partition_dims = OrderedDict{String, Int64}()
     for (i, sliced_bond_group) in enumerate(sliced_bond_groups)
         partition_dims["v$i"] = dim(sliced_bond_group[1])
     end
     partition_parameters = Dict("parameters" => partition_dims)
-    config = Dict("partitions" => partition_parameters, "amplitudes" => collect(amplitudes))
+    config = Dict("partitions" => partition_parameters,
+                         "amplitudes" => collect(amplitudes))
     YAML.write_file("$(filename_prefix).yml", config)
 end
