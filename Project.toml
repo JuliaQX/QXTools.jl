@@ -1,7 +1,7 @@
 name = "QXSim"
 uuid = "84f0eee1-10ae-40da-994b-b9d0e53829ae"
 authors = ["QuantEx team"]
-version = "0.1.5"
+version = "0.1.6"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"

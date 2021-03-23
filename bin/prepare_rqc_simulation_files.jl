@@ -28,6 +28,30 @@ function parse_commandline(ARGS)
         "--seed"
             help = "Seed to use for both circuit and amplitude selection"
             default = nothing
+        "--decompose"
+            help = "Set if two qubit gates should be decomposed."
+            default = true
+            arg_type = Bool
+        "--hypergraph"
+            help = "Set if the hypergraph structure of the tensor network should be used."
+            default = true
+            arg_type = Bool
+        "--time"
+            help = "The number of seconds to run quickbb for."
+            default = 120
+            arg_type = Int64
+        "--qbb_order"
+            help = "The branching order to be used by quickbb."
+            default = :min_fill
+            arg_type = Symbol
+        "--lb"
+            help = "Set if a lowerbound for the treewidth should be computed."
+            default = false
+            arg_type = Bool
+        "--score_function"
+            help = "Function to maximise when selecting vertices to remove."
+            default = :direct_treewidth
+            arg_type = Symbol
         "--prefix", "-p"
             help = "Prefix to use for output files"
             required = true
@@ -55,17 +79,29 @@ function main(ARGS)
     if seed !== nothing
         seed = parse(Int64, seed)
     end
+    decompose = parsed_args["decompose"]
+    hypergraph = parsed_args["hypergraph"]
+    time = parsed_args["time"]
+    qbb_order = parsed_args["qbb_order"]
+    lb = parsed_args["lb"]
+    score_function = parsed_args["score_function"]
     verbose = parsed_args["verbose"]
 
     @info("Create circuit with $(rows * cols) qubits")
     circ = create_rqc_circuit(rows, cols, depth, seed)
     @info("Circuit created with $(circ.circ_ops.len) gates")
 
-    generate_simulation_files(circ,
+    generate_simulation_files(circ;
                               number_bonds_to_slice=number_bonds_to_slice,
                               output_prefix=output_prefix,
                               num_amplitudes=num_amplitudes,
-                              seed=seed)
+                              seed=seed,
+                              decompose=decompose,
+                              hypergraph=hypergraph,
+                              time=time,
+                              qbb_order=qbb_order,
+                              lb=lb,
+                              score_function=score_function)
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

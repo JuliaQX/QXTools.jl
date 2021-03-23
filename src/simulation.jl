@@ -27,27 +27,36 @@ end
                               number_bonds_to_slice::Int=2,
                               output_prefix::String="simulation_input",
                               num_amplitudes::Union{Int64, Nothing}=nothing,
-                              seed::Union{Int64, Nothing}=nothing)
+                              seed::Union{Int64, Nothing}=nothing,
+                              decompose::Bool=true,
+                              kwargs...)
 
 Function to generate files required by qxrun to simulate the given circuit. This includes
 a .tl file with a list of the operations, a .jld file with the initial tensors and a .yml
 file with the parameters to use during the simulation.
+
+# Keywords
+- `number_bonds_to_slice::Int=2`: the number of edges to slice.
+- `output_prefix::String="simulation_input"`: the prefix to be used for the simulation files.
+- `num_amplitudes::Union{Int64, Nothing}=nothing`: the number of amplitudes to compute.
+- `seed::Union{Int64, Nothing}=nothing`: the seed to be used for randomly selecting amplitudes to compute.
+- `decompose::Bool=true`: set if two qubit gates should be decompoed when the circuit is converted to a tensor network.
+- `kwargs`: all other kwargs are passed to `contraction_scheme` when it is called.
 """
 function generate_simulation_files(circ::QXZoo.Circuit.Circ;
                                    number_bonds_to_slice::Int=2,
                                    output_prefix::String="simulation_input",
                                    num_amplitudes::Union{Int64, Nothing}=nothing,
-                                   seed::Union{Int64, Nothing}=nothing)
+                                   seed::Union{Int64, Nothing}=nothing,
+                                   decompose::Bool=true,
+                                   kwargs...)
     @info("Convert circuit to tensor network")
-    tnc = convert_to_tnc(circ)
+    tnc = convert_to_tnc(circ; decompose=decompose)
     @info("Tensor network created with $(length(tnc)) tensors and $(length(bonds(tnc))) bonds")
 
-    @info("Convert tensor network to graph")
-    g = convert_to_graph(tnc)
-    @info("Graph created: $(g)")
-
     @info("Get contraction plan and edges to slice using qxgraph")
-    bonds_to_slice, plan, metadata = contraction_scheme(tnc.tn, number_bonds_to_slice)
+    bonds_to_slice, plan, metadata = contraction_scheme(tnc.tn, number_bonds_to_slice;
+                                                        kwargs...)
 
     if num_amplitudes === nothing
         amplitudes = amplitudes_all(qubits(tnc))
