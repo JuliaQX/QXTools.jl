@@ -4,7 +4,6 @@ using QXZoo
 using QXTns
 
 using LightGraphs
-# using ITensors
 
 @testset "Test tensor network to graph conversion" begin
     # prepare circuit and network

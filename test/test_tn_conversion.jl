@@ -4,9 +4,6 @@ using QXSim.Circuits
 using QXTns
 import QXGraph
 
-import LightGraphs
-# using ITensors
-
 @testset "Test circuit to Tensor Network Circuit conversion" begin
     circ = create_test_circuit()
 
