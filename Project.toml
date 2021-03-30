@@ -1,7 +1,7 @@
 name = "QXSim"
 uuid = "84f0eee1-10ae-40da-994b-b9d0e53829ae"
 authors = ["QuantEx team"]
-version = "0.1.6"
+version = "0.1.7"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
@@ -28,7 +28,7 @@ LightGraphs = "1.3"
 TensorOperations = "3.1"
 TestSetExtensions = "2.0.0"
 YAML = "0.4"
-julia = "1.5"
+julia = "1.5, 1.6"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
