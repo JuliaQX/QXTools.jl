@@ -1,6 +1,6 @@
 using JLD2
 using FileIO
-using QXTn
+using QXTns
 
 @testset "Test tensor cache" begin
     tc = QXSim.TensorCache()
@@ -26,16 +26,16 @@ end
 @testset "Test dsl header generation" begin
 
     mktempdir() do path
-        tnc = QXTn.TensorNetworkCircuit(1)
-        push!(tnc, [1], QXTn.Gates.z())
-        push!(tnc, [1], QXTn.Gates.I())
+        tnc = QXTns.TensorNetworkCircuit(1)
+        push!(tnc, [1], QXTns.Gates.z())
+        push!(tnc, [1], QXTns.Gates.I())
         open(joinpath(path, "test.qx"), "w") do dsl_io
             JLD2.jldopen(joinpath(path, "test.jld2"), "w") do data_io
                 QXSim.write_dsl_load_header(tnc, dsl_io, data_io)
             end
         end
         # check the generated DSL is what is expected
-        dsl_content = read(open(joinpath(path, "test.qx"), "r"), String)        
+        dsl_content = read(open(joinpath(path, "test.qx"), "r"), String)
         @test dsl_content == """# version: $(QXSim.DSL_VERSION)
         outputs 1
         load t1 data_1

@@ -8,7 +8,7 @@ QXSim is a Julia package for simulating quantum circuits using tensor network ap
 accelerators. It was developed as part of the QuantEx project, one of the individual software projects of WP8 of [PRACE](https://prace-ri.eu/) 6IP.
 
 QXSim ties together a number of other Julia packages which are also part of the QuantEx project. These include QXZoo for
-generating and manipulating quantum circuits, QXTn for representing and manipulating tensor networks,
+generating and manipulating quantum circuits, QXTns for representing and manipulating tensor networks,
 QXGraph which implements a number of graph algorithms for finding good contraction plans and finally QXRun which is designed to run on large distributed
 clusters and carry out the computations using input files generated using QXSim.
 

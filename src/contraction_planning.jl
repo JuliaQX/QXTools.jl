@@ -1,6 +1,6 @@
 import QXGraph; qxg = QXGraph
 import LightGraphs
-import QXTn
+import QXTns
 
 export convert_to_graph, convert_to_line_graph
 export quickbb_contraction_plan, contraction_scheme
@@ -170,7 +170,7 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
     # plan.
     lg, symbol_map = convert_to_line_graph(tn; use_hyperedges=hypergraph)
     order, qbb_metadata = qxg.quickbb(lg; time=time, order=qbb_order, lb=lb)
-    
+
     # Create a dictionary for metadata regarding the contraction plan.
     contraction_metadata = OrderedDict{String, Any}()
     contraction_metadata["Method used"] = "quickbb"
@@ -243,7 +243,7 @@ to the corresponding tensor.
 """
 function netcon(tn::TensorNetwork, tensor_map::Union{OrderedDict{Symbol, <:Array{<:Index, 1}}, Nothing}=nothing)
     if tensor_map === nothing
-        tensor_map = OrderedDict(keys(tn) .=> inds.(values(tn)))
+        tensor_map = OrderedDict(keys(tn) .=> QXTns.inds.(values(tn)))
     end
     # Generate the arguments for the netcon method from the given network.
     tensor_indices, index_dims, tensor_labels = create_netcon_input(tensor_map)
@@ -277,7 +277,7 @@ function create_netcon_input(tensor_map::OrderedDict{Symbol, <:Array{<:Index, 1}
     for (i, (tensor_id, tensor_inds)) in enumerate(tensor_map)
         tensor_indices[i] = [get!(index_ids, ind, Symbol("ind_$(i)_$(j)"))
                             for (j, ind) in enumerate(tensor_inds)]
-        tensor_dims[i] = [dim(ind) for ind in tensor_inds]
+        tensor_dims[i] = [QXTns.dim(ind) for ind in tensor_inds]
         tensor_labels[i] = tensor_id
     end
 
@@ -347,13 +347,13 @@ function order_to_contraction_plan(elimination_order::Array{Array{Symbol, 1}, 1}
             tensors_to_contract = OrderedDict{Symbol, Array{Index, 1}}()
             for t_id in edge
                 I_id = _get_intermediate_tensor(intermediate_tensor_map, t_id)
-                inds = typeof(tn) <: TensorNetwork ? QXTn.inds(tn[t_id]) : tn[t_id]
+                inds = typeof(tn) <: TensorNetwork ? QXTns.inds(tn[t_id]) : tn[t_id]
                 tensors_to_contract[I_id] = symdiff(get(tensors_to_contract, I_id, []), inds)
             end
             if length(tensors_to_contract) > 1
                 # Check if netcon can be used on the given set of tensors. If not, use
                 # a fallback method to find a contraction plan.
-                tensor_sizes = prod.([dim.(inds) for inds in values(tensors_to_contract)])
+                tensor_sizes = prod.([QXTns.dim.(inds) for inds in values(tensors_to_contract)])
                 if length(tensors_to_contract) < 37 && any(tensor_sizes .< 2^62)
                     local_contraction_plan = netcon(tn, tensors_to_contract)
                 else

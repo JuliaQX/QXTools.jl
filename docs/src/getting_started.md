@@ -16,7 +16,7 @@ An example of how QXSim can be used to calculate a set of amplitudes for small G
 ```
 using QXSim
 using QXSim.Circuits
-using QXTn
+using QXTns
 using QXGraph
 
 # Create ghz circuit

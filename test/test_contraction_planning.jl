@@ -1,10 +1,10 @@
 using QXSim.Circuits
 using QXGraph
 using QXZoo
-using QXTn
+using QXTns
 
 using LightGraphs
-using ITensors
+# using ITensors
 
 @testset "Test tensor network to graph conversion" begin
     # prepare circuit and network
@@ -42,7 +42,7 @@ using ITensors
     @test QXGraph.nv(g) == 6 # circuit has 6 hyperedges
     @test QXGraph.ne(g) == 7
     @test length(symbol_map) == 6
-    @test QXTn.counter(length.(values(symbol_map))) == Dict(4=>2, 2=>4)
+    @test QXTns.counter(length.(values(symbol_map))) == Dict(4=>2, 2=>4)
 end
 
 
@@ -86,7 +86,7 @@ end
     @test length(edges_to_slice) == 5
     @test length(plan) == 3 # modified plan should be smaller.
 
-    # Create a network consisting of one hyperedge which is too large for netcon to 
+    # Create a network consisting of one hyperedge which is too large for netcon to
     # contract. Test if fallback method for contracting large hyperedges produces a valid
     # contraction plan.
     circ = Circuit.Circ(1)
