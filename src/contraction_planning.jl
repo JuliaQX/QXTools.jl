@@ -1,4 +1,4 @@
-import QXGraph; qxg = QXGraph
+import QXGraphDecompositions; qxg = QXGraphDecompositions
 import LightGraphs
 import QXTns
 

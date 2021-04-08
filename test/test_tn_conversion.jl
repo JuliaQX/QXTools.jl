@@ -2,7 +2,7 @@
 using QXSim
 using QXSim.Circuits
 using QXTns
-import QXGraph
+import QXGraphDecompositions
 
 @testset "Test circuit to Tensor Network Circuit conversion" begin
     circ = create_test_circuit()

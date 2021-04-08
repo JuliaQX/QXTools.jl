@@ -54,7 +54,7 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
     tnc = convert_to_tnc(circ; decompose=decompose)
     @info("Tensor network created with $(length(tnc)) tensors and $(length(bonds(tnc))) bonds")
 
-    @info("Get contraction plan and edges to slice using qxgraph")
+    @info("Get contraction plan and edges to slice using QXGraphDecompositions")
     bonds_to_slice, plan, metadata = contraction_scheme(tnc.tn, number_bonds_to_slice;
                                                         kwargs...)
 
@@ -161,7 +161,7 @@ function run_simulation(circ::QXZoo.Circuit.Circ;
     g = convert_to_graph(tnc)
     @info("Graph created: $(g)")
 
-    @info("Get contraction plan and edges to slice using qxgraph")
+    @info("Get contraction plan and edges to slice using QXGraphDecompositions")
     plan = quickbb_contraction_plan(tnc)
 
     # to prevent memory issues don't attempt to get all amplitudes for large numbers of qubits

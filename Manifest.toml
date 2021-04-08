@@ -308,19 +308,15 @@ uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
-[[QXGraph]]
+[[QXGraphDecompositions]]
 deps = ["LightGraphs"]
-git-tree-sha1 = "beda3698e39ea2fde5d78480ffea7681344a2172"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaQX/QXGraph.jl"
+git-tree-sha1 = "7fcb57a14168a6bfea9298430903b1fd10def5df"
 uuid = "b15f1ded-d19a-4aca-a940-1991fcfc7750"
-version = "0.1.2"
+version = "0.1.3"
 
 [[QXTns]]
 deps = ["DataStructures", "ITensors", "LinearAlgebra", "NDTensors", "TestSetExtensions"]
 git-tree-sha1 = "c5dd3a69d1c06a05018a0a3d8f2ca534d9f850c4"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaQX/QXTns.jl"
 uuid = "995e1dad-72e3-4b97-b122-7deaeb8b44f9"
 version = "0.1.6"
 

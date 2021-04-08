@@ -10,7 +10,7 @@ accelerators. It was developed as part of the QuantEx project, one of the indivi
 
 QXSim depends on a number of other Julia packages developed that were also developed as part of the QuantEx project. These include QXZoo which
 is capable of generating and manipulating quantum circuits, QXTns which features data structures and functions for manipulating tensor networks,
-QXGraph which implements a number of graph algorithms for finding good contraction plans and QXRun which is designed to run on large distributed
+QXGraphDecompositions which implements a number of graph algorithms for finding good contraction plans and QXRun which is designed to run on large distributed
 clusters.
 
 The design and implementation of QXSim and related packages was inspired by many other frameworks and packages including ITensors, TensorOperations.jl,
@@ -33,7 +33,7 @@ An example of how QXSim can be used to calculate a set of amplitudes for small G
 using QXSim
 using QXSim.Circuits
 using QXTns
-using QXGraph
+using QXGraphDecompositions
 
 # Create ghz circuit
 circ = create_ghz_circuit(3)
