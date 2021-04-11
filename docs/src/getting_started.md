@@ -2,20 +2,20 @@
 
 ## Installation
 
-QXSim is a Julia package and can be installed using Julia's inbuilt package manager from the Julia REPL using.
+QXTools is a Julia package and can be installed using Julia's inbuilt package manager from the Julia REPL using.
 
 ```
 import Pkg
-Pkg.add("QXSim")
+Pkg.add("QXTools")
 ```
 
 ## Example usage
 
-An example of how QXSim can be used to calculate a set of amplitudes for small GHZ preparation circuit looks like
+An example of how QXTools can be used to calculate a set of amplitudes for small GHZ preparation circuit looks like
 
 ```
-using QXSim
-using QXSim.Circuits
+using QXTools
+using QXTools.Circuits
 using QXTns
 using QXGraphDecompositions
 
@@ -29,9 +29,9 @@ tnc = convert_to_tnc(circ)
 plan = quickbb_contraction_plan(tnc)
 
 # Contract the network using this plan to find the given amplitude for different outputs
-@show QXSim.single_amplitude(tnc, plan, "000")
-@show QXSim.single_amplitude(tnc, plan, "111")
-@show QXSim.single_amplitude(tnc, plan, "100")
+@show QXTools.single_amplitude(tnc, plan, "000")
+@show QXTools.single_amplitude(tnc, plan, "111")
+@show QXTools.single_amplitude(tnc, plan, "100")
 ```
 
 This is only recommended for small test cases. For larger scale runs one can call the `generate_simulation_files`
@@ -39,8 +39,8 @@ which will do the conversion to a network, find the contraction plan and create 
 calculations. For example
 
 ```
-using QXSim
-using QXSim.Circuits
+using QXTools
+using QXTools.Circuits
 
 # Create ghz circuit
 circ = create_ghz_circuit(3)

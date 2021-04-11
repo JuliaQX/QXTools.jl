@@ -12,7 +12,7 @@ jobs:
         version:
           - '1.6'
         os:
-          - ubuntu-latest          
+          - ubuntu-latest
         arch:
           - x64
     steps:
@@ -52,12 +52,12 @@ jobs:
             Pkg.instantiate()
             Pkg.add("Documenter")
             Pkg.add("DataFrames")
-            Pkg.add("Latexify")'            
+            Pkg.add("Latexify")'
       - run: |
           julia --project -e '
             using Documenter: doctest
-            using QXSim
-            doctest(QXSim)'
+            using QXTools
+            doctest(QXTools)'
       - run: julia --project docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

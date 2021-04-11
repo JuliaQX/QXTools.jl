@@ -1,14 +1,14 @@
 push!(LOAD_PATH, "../")
-using QXSim, Documenter
+using QXTools, Documenter
 
 makedocs(;
-    modules=[QXSim],
+    modules=[QXTools],
     authors="QuantEx team",
-    repo="https://github.com/JuliaQX/QXSim.jl/blob/{commit}{path}#L{line}",
-    sitename="QXSim.jl",
+    repo="https://github.com/JuliaQX/QXTools.jl/blob/{commit}{path}#L{line}",
+    sitename="QXTools.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://JuliaQX.github.io/QXSim.jl",
+        canonical="https://JuliaQX.github.io/QXTools.jl",
         assets=String[],
     ),
     pages=[
@@ -21,5 +21,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/JuliaQX/QXSim.jl",
+    repo="github.com/JuliaQX/QXTools.jl",
 )

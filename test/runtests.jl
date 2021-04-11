@@ -1,7 +1,7 @@
-using QXSim
+using QXTools
 using Test
 using TestSetExtensions
 
-@testset ExtendedTestSet "All QXSim.jl tests" begin
+@testset ExtendedTestSet "All QXTools.jl tests" begin
     @includetests ARGS
 end

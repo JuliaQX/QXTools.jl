@@ -1,6 +1,6 @@
 
-using QXSim
-using QXSim.Circuits
+using QXTools
+using QXTools.Circuits
 using QXTns
 import QXGraphDecompositions
 

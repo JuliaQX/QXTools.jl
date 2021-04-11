@@ -1,5 +1,5 @@
-using QXSim
-using QXSim.Circuits
+using QXTools
+using QXTools.Circuits
 using ArgParse
 using Logging
 

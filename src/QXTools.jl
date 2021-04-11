@@ -1,4 +1,4 @@
-module QXSim
+module QXTools
 using Logging
 import QXZoo
 import DataStructures: OrderedDict

@@ -1,4 +1,4 @@
-using QXSim.Circuits
+using QXTools.Circuits
 using QXGraphDecompositions
 using QXZoo
 using QXTns
@@ -122,14 +122,14 @@ end
     hyper_lg, hyper_symbol_map = convert_to_line_graph(tnc; use_hyperedges=true)
 
     # Get an elimination order for the line graphs.
-    order, metadata = QXSim.qxg.quickbb(lg)
+    order, metadata = QXTools.qxg.quickbb(lg)
     order = [symbol_map[edge] for edge in order]
-    hyper_order, hyper_metadata = QXSim.qxg.quickbb(hyper_lg)
+    hyper_order, hyper_metadata = QXTools.qxg.quickbb(hyper_lg)
     hyper_order = [hyper_symbol_map[edge] for edge in hyper_order]
 
     # Try converting the orders to contraction plans
-    plan = QXSim.order_to_contraction_plan(order, tnc.tn)
-    hyper_plan = QXSim.order_to_contraction_plan(hyper_order, tnc.tn)
+    plan = QXTools.order_to_contraction_plan(order, tnc.tn)
+    hyper_plan = QXTools.order_to_contraction_plan(hyper_order, tnc.tn)
 
     # Test contraction plan has correct length.
     @test length(plan) == 10

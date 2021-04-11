@@ -1,6 +1,6 @@
 # User's Guide
 
-QXSim generates output files which provide a description of the computations and data
+QXTools generates output files which provide a description of the computations and data
 required to perform the simulation. There are three output files:
 
 - Parameter file: This YAML file provides informations on the sliced edges and dimensions as well
@@ -57,14 +57,14 @@ different processes/nodes with a reduction operation performed on the scalars re
 
 ## DSL Specification
 
-A Domain Specific Language (DSL) has been defined when enables better separation 
+A Domain Specific Language (DSL) has been defined when enables better separation
 of concerns between the components. This DSL describes a contraction over a tensor
 network to calculate observables of interest in the form of a sequence of instructions
 which act on individual tensors. This makes it possible to separate the development
 of the high performance distributed tensor network computation code from that of the
-higher level contraction planning, circuit and and network manipulation code. For QXSim
+higher level contraction planning, circuit and and network manipulation code. For QXTools
 DSL files the ".qx" suffix is used for "Tensor Language". We will first show a very
-simple example of a QXSim DSL file and then descibe in detail how each of the
+simple example of a QXTools DSL file and then descibe in detail how each of the
 instructions work.
 
 ### Example DSL file
