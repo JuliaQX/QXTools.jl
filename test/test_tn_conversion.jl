@@ -1,11 +1,8 @@
 
 using QXSim
 using QXSim.Circuits
-using QXTn
-import QXGraph
-
-import LightGraphs
-using ITensors
+using QXTns
+import QXGraphDecompositions
 
 @testset "Test circuit to Tensor Network Circuit conversion" begin
     circ = create_test_circuit()

@@ -1,10 +1,9 @@
 include("tensor_cache.jl")
 
-using ITensors
 using YAML
 using JLD2
 using Random
-using QXTn
+using QXTns
 
 const DSL_VERSION = VersionNumber("0.2")
 
@@ -110,7 +109,7 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
             # slice_tensors = tn_copy[slice_bond]
             for tensor_sym in related_tensors
                 new_sym = Symbol("$(tensor_sym)_\$v$i")
-                tensor_bonds_in_group = intersect(inds(tn_copy[tensor_sym]), slice_bond_group)
+                tensor_bonds_in_group = intersect(QXTns.inds(tn_copy[tensor_sym]), slice_bond_group)
                 write_view_command(dsl_io, tn_copy, tensor_sym, new_sym, tensor_bonds_in_group[1], "\$v$(i)")
                 replace_tensor_symbol!(tn_copy, tensor_sym, new_sym)
                 changed_ids[tensor_sym] = new_sym
@@ -164,8 +163,8 @@ one of the tensors is rank 0 (a scalar) a '0' is used as a placeholder for the l
 
 """
 function write_ncon_command(io::IO, tn::TensorNetwork, A_sym::Symbol, B_sym::Symbol, C_sym::Symbol)
-    A_indices = copy(QXTn.inds(tn[A_sym]))
-    B_indices = copy(QXTn.inds(tn[B_sym]))
+    A_indices = copy(QXTns.inds(tn[A_sym]))
+    B_indices = copy(QXTns.inds(tn[B_sym]))
     common_indices = intersect(A_indices, B_indices)
     all_indices = union(A_indices, B_indices)
     C_indices = setdiff(all_indices, common_indices)
@@ -240,7 +239,7 @@ end
 Write command to create a view on an existing tensor to the dsl_io stream that is passed.
 """
 function write_view_command(dsl_io::IO, tn::TensorNetwork, tensor_sym::Symbol, new_sym::Symbol, slice_bond::Index, bond_label::String)
-    indices = QXTn.inds(tn[tensor_sym])
+    indices = QXTns.inds(tn[tensor_sym])
     index_map = OrderedDict{Index, Int64}((y => x for (x, y) in enumerate(indices)))
 
     for group in hyperindices(tn[tensor_sym])
@@ -275,7 +274,7 @@ function generate_parameter_file(filename_prefix::String,
                                  amplitudes::Union{Base.Generator, <: AbstractArray})
     partition_dims = OrderedDict{String, Int64}()
     for (i, sliced_bond_group) in enumerate(sliced_bond_groups)
-        partition_dims["v$i"] = dim(sliced_bond_group[1])
+        partition_dims["v$i"] = QXTns.dim(sliced_bond_group[1])
     end
     partition_parameters = Dict("parameters" => partition_dims)
     config = Dict("partitions" => partition_parameters,

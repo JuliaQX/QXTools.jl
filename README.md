@@ -3,16 +3,14 @@
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaQX.github.io/QXSim.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://JuliaQX.github.io/QXSim.jl/dev)
 [![Build Status](https://github.com/JuliaQX/QXSim.jl/workflows/CI/badge.svg)](https://github.com/JuliaQX/QXSim.jl/actions)
-[![Build Status](https://github.com/JuliaQX/QXSim.jl/badges/master/pipeline.svg)](https://github.com/JuliaQX/QXSim.jl/pipelines)
-[![Coverage](https://github.com/JuliaQX/QXSim.jl/badges/master/coverage.svg)](https://github.com/JuliaQX/QXSim.jl/commits/master)
 [![Coverage](https://codecov.io/gh/JuliaQX/QXSim.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaQX/QXSim.jl)
 
-QXSim is a Julia package for simulating quantum circuits using tensor networking approaches targetting large distibuted memory clusters with hardware
+QXSim is a Julia package for simulating quantum circuits using tensor networking approaches targeting large distributed memory clusters with hardware
 accelerators. It was developed as part of the QuantEx project, one of the individual software projects of WP8 of PRACE 6IP.
 
 QXSim depends on a number of other Julia packages developed that were also developed as part of the QuantEx project. These include QXZoo which
-is capable of generating and manipulating quantum circuits, QXTn which features data structures and functions for manipulating tensor networks,
-QXGraph which implements a number of graph algorithms for finding good contraction plans and QXRun which is designed to run on large distributed
+is capable of generating and manipulating quantum circuits, QXTns which features data structures and functions for manipulating tensor networks,
+QXGraphDecompositions which implements a number of graph algorithms for finding good contraction plans and QXRun which is designed to run on large distributed
 clusters.
 
 The design and implementation of QXSim and related packages was inspired by many other frameworks and packages including ITensors, TensorOperations.jl,
@@ -34,8 +32,8 @@ An example of how QXSim can be used to calculate a set of amplitudes for small G
 ```
 using QXSim
 using QXSim.Circuits
-using QXTn
-using QXGraph
+using QXTns
+using QXGraphDecompositions
 
 # Create ghz circuit
 circ = create_ghz_circuit(3)
@@ -79,7 +77,7 @@ Contributions from users are welcome and we encourage users to open issues and s
 [CONTRIBUTING.md](CONTRIBUTION.md) has further details of the contribution guidelines.
 
 
-# Building documentatoin
+# Building documentation
 
 QXSim.jl using [Documenter.jl](https://juliadocs.github.io/Documenter.jl/stable/) to generate documentation. To build
 the documentation locally run the following from the `docs` folder.
@@ -90,7 +88,7 @@ The first time it is will be necessary to instantiate the environment to install
 julia --project 'import Pkg; Pkg.instantiate()'
 ```
 
-and then to build the documentaton
+and then to build the documentation
 
 ```
 julia --project make.jl

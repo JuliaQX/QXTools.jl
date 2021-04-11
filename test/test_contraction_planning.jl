@@ -1,10 +1,9 @@
 using QXSim.Circuits
-using QXGraph
+using QXGraphDecompositions
 using QXZoo
-using QXTn
+using QXTns
 
 using LightGraphs
-using ITensors
 
 @testset "Test tensor network to graph conversion" begin
     # prepare circuit and network
@@ -32,21 +31,21 @@ using ITensors
 
     # create the line graph for the circuit.
     g, symbol_map = convert_to_line_graph(tnc.tn)
-    @test QXGraph.nv(g) == 8 # 2 between gates and 6 to inputs and outputs
-    @test QXGraph.ne(g) == 13 # 1-qubit gate -> 1 edge, 2-qubit gate -> 6 edges. 1+6+6.
+    @test QXGraphDecompositions.nv(g) == 8 # 2 between gates and 6 to inputs and outputs
+    @test QXGraphDecompositions.ne(g) == 13 # 1-qubit gate -> 1 edge, 2-qubit gate -> 6 edges. 1+6+6.
 
     # Check conversion to linegraph of network's hypergraph.
     circ = create_test_circuit()
     tnc = convert_to_tnc(circ, no_input=false, no_output=false, decompose=true)
     g, symbol_map = convert_to_line_graph(tnc; use_hyperedges=true)
-    @test QXGraph.nv(g) == 6 # circuit has 6 hyperedges
-    @test QXGraph.ne(g) == 7
+    @test QXGraphDecompositions.nv(g) == 6 # circuit has 6 hyperedges
+    @test QXGraphDecompositions.ne(g) == 7
     @test length(symbol_map) == 6
-    @test QXTn.counter(length.(values(symbol_map))) == Dict(4=>2, 2=>4)
+    @test QXTns.counter(length.(values(symbol_map))) == Dict(4=>2, 2=>4)
 end
 
 
-@testset "Test QXGraph contraction and slicing" begin
+@testset "Test QXGraphDecompositions contraction and slicing" begin
     # prepare the circuit.
     circ = create_test_circuit()
     tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
@@ -86,7 +85,7 @@ end
     @test length(edges_to_slice) == 5
     @test length(plan) == 3 # modified plan should be smaller.
 
-    # Create a network consisting of one hyperedge which is too large for netcon to 
+    # Create a network consisting of one hyperedge which is too large for netcon to
     # contract. Test if fallback method for contracting large hyperedges produces a valid
     # contraction plan.
     circ = Circuit.Circ(1)
