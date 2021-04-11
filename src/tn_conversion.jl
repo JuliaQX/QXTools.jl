@@ -7,7 +7,7 @@ export convert_to_tnc
 """
 _convert_to_tnc(circ::QXZoo.Circuit.Circ; kwargs...)
 
-Function to convert a QXZoo circuit to a QXSim tensor network circuit
+Function to convert a QXZoo circuit to a QXTools tensor network circuit
 """
 function _convert_to_tnc(circ::QXZoo.Circuit.Circ; kwargs...)
     tnc = TensorNetworkCircuit(circ.num_qubits)
@@ -27,7 +27,7 @@ convert_to_tnc(circ::QXZoo.Circuit.Circ;
                no_output::Bool=false,
                kwargs...)
 
-Function to convert a QXZoo circuit to a QXSim tensor network circuit
+Function to convert a QXZoo circuit to a QXTools tensor network circuit
 """
 function convert_to_tnc(circ::QXZoo.Circuit.Circ;
                         input::Union{String, Nothing}=nothing,

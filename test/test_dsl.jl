@@ -3,7 +3,7 @@ using FileIO
 using QXTns
 
 @testset "Test tensor cache" begin
-    tc = QXSim.TensorCache()
+    tc = QXTools.TensorCache()
     a = rand(Float64, 3, 4, 5)
     sym = push!(tc, a)
     @test sym == push!(tc, a)
@@ -31,12 +31,12 @@ end
         push!(tnc, [1], QXTns.Gates.I())
         open(joinpath(path, "test.qx"), "w") do dsl_io
             JLD2.jldopen(joinpath(path, "test.jld2"), "w") do data_io
-                QXSim.write_dsl_load_header(tnc, dsl_io, data_io)
+                QXTools.write_dsl_load_header(tnc, dsl_io, data_io)
             end
         end
         # check the generated DSL is what is expected
         dsl_content = read(open(joinpath(path, "test.qx"), "r"), String)
-        @test dsl_content == """# version: $(QXSim.DSL_VERSION)
+        @test dsl_content == """# version: $(QXTools.DSL_VERSION)
         outputs 1
         load t1 data_1
         load t2 data_2
@@ -60,7 +60,7 @@ end
     b_hyper_indices = [[1, 2]]
     t1 = push!(tn, QXTensor(as, a_hyper_indices))
     t2 = push!(tn, QXTensor(bs, b_hyper_indices))
-    QXSim.write_ncon_command(io, tn, t1, t2, :t3)
+    QXTools.write_ncon_command(io, tn, t1, t2, :t3)
     cmd = String(take!(io))
     @test cmd == "ncon t3 1,2 t1 1,2 t2 2\n"
 
@@ -72,7 +72,7 @@ end
     b_hyper_indices = Array{Int64,1}[]
     t1 = push!(tn, QXTensor(as, a_hyper_indices))
     t2 = push!(tn, QXTensor(bs, b_hyper_indices))
-    QXSim.write_ncon_command(io, tn, t1, t2, :t3)
+    QXTools.write_ncon_command(io, tn, t1, t2, :t3)
     cmd = String(take!(io))
     @test cmd == "ncon t3 0 t1 1 t2 1,1\n"
 
@@ -91,7 +91,7 @@ end
     push!(tn, QXTensor(b_i, b_hyper))
 
     io = IOBuffer()
-    QXSim.write_ncon_command(io, tn, :t1, :t2, :t3)
+    QXTools.write_ncon_command(io, tn, :t1, :t2, :t3)
     @test String(take!(io)) == "ncon t3 1,3,5,2,9,10 t1 1,2,3,5,2,9 t2 2,10\n"
 end
 
@@ -103,7 +103,7 @@ end
     a_hyper_indices = [[2, 3]]
     t1 = push!(tn, QXTensor(as, a_hyper_indices))
 
-    QXSim.write_view_command(io, tn, t1, :t1v1, as[2], "v1")
+    QXTools.write_view_command(io, tn, t1, :t1v1, as[2], "v1")
 
     cmd = String(take!(io))
     @test cmd == "view t1v1 t1 2 v1\n"
