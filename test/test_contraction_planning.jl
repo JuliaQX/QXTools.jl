@@ -97,6 +97,50 @@ end
     @test length(plan) == 41
 end
 
+@testset "Test flow cutter contraction" begin
+    # A test circuit to test flow cutter on.
+    circ = create_test_circuit()
+    tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
+
+    # test contraction plan
+    plan = flow_cutter_contraction_plan(tnc; time=20)
+    @test length(plan) == 5
+
+    # test contracting the network
+    output = contract_tn!(tnc, plan)
+    ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
+    @test all(output .≈ ref)
+
+    # A test circuit to test flow cutter on.
+    circ = create_test_circuit()
+    tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
+
+    # test contraction plan with 0 seconds so the min fill heursitic is used as a fall back
+    # when flow cutter can't find a tree decomposition.
+    plan = flow_cutter_contraction_plan(tnc; time=0)
+    @test length(plan) == 5
+
+    # test contracting the network
+    output = contract_tn!(tnc, plan)
+    ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
+    @test all(output .≈ ref)
+end
+
+@testset "Test min fill contraction" begin
+    # A test circuit to test the min fill heuristic on.
+    circ = create_test_circuit()
+    tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
+
+    # test contraction plan
+    plan = min_fill_contraction_plan(tnc)
+    @test length(plan) == 5
+
+    # test contracting the network
+    output = contract_tn!(tnc, plan)
+    ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
+    @test all(output .≈ ref)
+end
+
 @testset "Test netcon contraction" begin
     # prepare the circuit.
     circ = create_test_circuit()
