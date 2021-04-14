@@ -143,8 +143,9 @@ end
 
 
 """
-    flow_cutter_contraction_plan(tn::TensorNetwork; 
-                                 time::Integer=10,
+    flow_cutter_contraction_plan(tn::TensorNetwork;
+                                 time::Integer=60,
+                                 seed::Integer=-1,
                                  hypergraph::Bool=false)
 
 Use flow cutter to create a contraction plan for 'tn'.
@@ -153,17 +154,20 @@ If flow cutter does not find a tree decomposotion to turn into a contraction pla
 the specified amount of time then the min fill heuristic is used to find a contraction plan.
 
 # Keywords
-- `time::Integer=20`: the number of seconds to run the flow cutter for.
-- `hypergraph::Bool=false`: set if hyperedges in `tn` should be accounted for.
+- `time::Integer=60`: The number of seconds to run the flow cutter for.
+- `seed::Integer=-1`: Sets the seed used by flow cutter. If negative then flow cutter will 
+                      choose a seed.
+- `hypergraph::Bool=false`: Sets if hyperedges in `tn` should be accounted for.
 """
 function flow_cutter_contraction_plan(tn::TensorNetwork; 
-                                      time::Integer=20,
+                                      time::Integer=60,
+                                      seed::Integer=-1,
                                       hypergraph::Bool=false)
     # Convert tn to a line graph and pass it to flow cutter to find an tree decomposition.
     lg, symbol_map = convert_to_line_graph(tn, use_hyperedges=hypergraph)
 
     # Use flow cutter to try find a tree decomposition of the line graph.
-    td = qxg.flow_cutter(lg; time=time)
+    td = qxg.flow_cutter(lg, time; seed=seed)
 
     # If a tree decomposition was found, convert it into a vertex elimination order for lg,
     # otherwise use the min fill heuristic to find an elimination order.
