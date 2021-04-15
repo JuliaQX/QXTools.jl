@@ -268,22 +268,31 @@ for the remaining tensor network.
 """
 function contraction_scheme(tn::TensorNetwork, num::Integer;
                             time::Integer=120,
-                            qbb_order::Symbol=:min_fill,
-                            lb::Bool=false,
+                            seed::Integer=-1,
                             score_function::Symbol=:direct_treewidth,
                             hypergraph::Bool=true)
-    # Create the line graph for the given tn and pass it to quickbb to find a contraction
-    # plan.
+    # Create the line graph for the given tn.
     lg, symbol_map = convert_to_line_graph(tn; use_hyperedges=hypergraph)
-    order, qbb_metadata = qxg.quickbb(lg; time=time, order=qbb_order, lb=lb)
+
+    # Use flow cutter to try find a tree decomposition of the line graph.
+    td = qxg.flow_cutter(lg, time; seed=seed)
+
+    # If a tree decomposition was found, convert it into a vertex elimination order for lg,
+    # otherwise use the min fill heuristic to find an elimination order.
+    if haskey(td, :treewidth)
+        order = Symbol.(qxg.order_from_tree_decomposition(td))
+        method_used = "flow cutter"
+    else
+        tw, order = qxg.min_fill(lg)
+        method_used = "min fill heuristic"
+    end
 
     # Create a dictionary for metadata regarding the contraction plan.
     contraction_metadata = OrderedDict{String, Any}()
-    contraction_metadata["Method used"] = "quickbb"
+    contraction_metadata["Method used"] = method_used
     contraction_metadata["Time allocated"] = time
-    contraction_metadata["Ordering used"] = qbb_order
-    contraction_metadata["Lower bound flag used"] = lb
-    contraction_metadata["Returned metadata"] = OrderedDict(qbb_metadata)
+    contraction_metadata["Seed used"] = seed
+    # contraction_metadata["Returned metadata"] = OrderedDict(flow_cutter_metadata)
     contraction_metadata["Hypergraph used"] = hypergraph
     contraction_metadata["Hyperedge contraction method"] = "Netcon where possible, min fill heuristic otherwise."
 
