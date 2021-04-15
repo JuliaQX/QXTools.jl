@@ -276,6 +276,7 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
 
     # Use flow cutter to try find a tree decomposition of the line graph.
     td = qxg.flow_cutter(lg, time; seed=seed)
+    flow_cutter_metadata = OrderedDict(1:length(td[:comments]) .=> td[:comments])
 
     # If a tree decomposition was found, convert it into a vertex elimination order for lg,
     # otherwise use the min fill heuristic to find an elimination order.
@@ -292,7 +293,7 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
     contraction_metadata["Method used"] = method_used
     contraction_metadata["Time allocated"] = time
     contraction_metadata["Seed used"] = seed
-    # contraction_metadata["Returned metadata"] = OrderedDict(flow_cutter_metadata)
+    contraction_metadata["Returned metadata"] = flow_cutter_metadata
     contraction_metadata["Hypergraph used"] = hypergraph
     contraction_metadata["Hyperedge contraction method"] = "Netcon where possible, min fill heuristic otherwise."
 
