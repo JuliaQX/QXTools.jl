@@ -39,7 +39,8 @@ file with the parameters to use during the simulation.
 - `number_bonds_to_slice::Int=2`: the number of edges to slice.
 - `output_prefix::String="simulation_input"`: the prefix to be used for the simulation files.
 - `num_amplitudes::Union{Int64, Nothing}=nothing`: the number of amplitudes to compute.
-- `seed::Union{Int64, Nothing}=nothing`: the seed to be used by flow cutter to find a tree decomposition.
+- `seed::Union{Int64, Nothing}=nothing`: the seed to be used by flow cutter to find a tree 
+                                         decomposition and for randomly selecting amplitudes to compute..
 - `decompose::Bool=true`: set if two qubit gates should be decompoed when the circuit is converted to a tensor network.
 - `kwargs`: all other kwargs are passed to `contraction_scheme` when it is called.
 """

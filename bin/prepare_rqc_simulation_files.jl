@@ -26,7 +26,7 @@ function parse_commandline(ARGS)
             help = "Number of amplitudes"
             default = nothing
         "--seed"
-            help = "Seed to use for both circuit generation and contraction planning"
+            help = "Seed to use for circuit generation, contraction planning and selecting amplitudes to compute."
             default = nothing
         "--decompose"
             help = "Set if two qubit gates should be decomposed."
