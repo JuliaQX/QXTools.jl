@@ -39,7 +39,8 @@ file with the parameters to use during the simulation.
 - `number_bonds_to_slice::Int=2`: the number of edges to slice.
 - `output_prefix::String="simulation_input"`: the prefix to be used for the simulation files.
 - `num_amplitudes::Union{Int64, Nothing}=nothing`: the number of amplitudes to compute.
-- `seed::Union{Int64, Nothing}=nothing`: the seed to be used for randomly selecting amplitudes to compute.
+- `seed::Union{Int64, Nothing}=nothing`: the seed to be used by flow cutter to find a tree 
+                                         decomposition and for randomly selecting amplitudes to compute..
 - `decompose::Bool=true`: set if two qubit gates should be decompoed when the circuit is converted to a tensor network.
 - `kwargs`: all other kwargs are passed to `contraction_scheme` when it is called.
 """
@@ -55,9 +56,13 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
     @info("Tensor network created with $(length(tnc)) tensors and $(length(bonds(tnc))) bonds")
 
     @info("Get contraction plan and edges to slice using QXGraphDecompositions")
+    fc_seed = (seed === nothing) ? -1 : seed # flow cutter seed expects -1 in place of nothing.
     bonds_to_slice, plan, metadata = contraction_scheme(tnc.tn, number_bonds_to_slice;
+                                                        seed=fc_seed,
                                                         kwargs...)
 
+    # TODO: This part will probably be replaced by a block of code to create variables
+    # for whichever sampling method the user chooses to use. 
     if num_amplitudes === nothing
         amplitudes = amplitudes_all(qubits(tnc))
     else

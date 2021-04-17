@@ -64,12 +64,12 @@ end
     tnc = convert_to_tnc(circ, no_input=false, no_output=false, decompose=false)
 
     # Test contraction scheme function
-    edges_to_slice, plan = contraction_scheme(tnc, 3; hypergraph=false)
+    edges_to_slice, plan = contraction_scheme(tnc, 3; time = 30, hypergraph=false)
     @test length(edges_to_slice) == 3 # Should have 3 edges to slice
     @test length(plan) == length(tnc) - 1 - 3 # modified plan should be smaller.
 
     # Test contraction scheme function
-    edges_to_slice, plan = contraction_scheme(tnc, 0)
+    edges_to_slice, plan = contraction_scheme(tnc, 0; time = 30)
     @test length(edges_to_slice) == 0 # Should have 0 edges to slice
     @test length(plan) == length(tnc) - 1
 
@@ -80,7 +80,7 @@ end
     @test length(plan) == 8
 
     # Test contraction scheme function with hypergraph.
-    edges_to_slice, plan = contraction_scheme(tnc, 3; hypergraph=true)
+    edges_to_slice, plan = contraction_scheme(tnc, 3; time = 30, hypergraph=true)
     # Should have 5 indices to slice (1 hyperedge with 2 indices)
     @test length(edges_to_slice) == 5
     @test length(plan) == 3 # modified plan should be smaller.
@@ -95,6 +95,50 @@ end
     tnc = convert_to_tnc(circ, no_input=false, no_output=false, decompose=false)
     plan = quickbb_contraction_plan(tnc; hypergraph=true)
     @test length(plan) == 41
+end
+
+@testset "Test flow cutter contraction" begin
+    # A test circuit to test flow cutter on.
+    circ = create_test_circuit()
+    tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
+
+    # test contraction plan
+    plan = flow_cutter_contraction_plan(tnc; time=20)
+    @test length(plan) == 5
+
+    # test contracting the network
+    output = contract_tn!(tnc, plan)
+    ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
+    @test all(output .≈ ref)
+
+    # A test circuit to test flow cutter on.
+    circ = create_test_circuit()
+    tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
+
+    # test contraction plan with 0 seconds so the min fill heursitic is used as a fall back
+    # when flow cutter can't find a tree decomposition.
+    plan = flow_cutter_contraction_plan(tnc; time=0)
+    @test length(plan) == 5
+
+    # test contracting the network
+    output = contract_tn!(tnc, plan)
+    ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
+    @test all(output .≈ ref)
+end
+
+@testset "Test min fill contraction" begin
+    # A test circuit to test the min fill heuristic on.
+    circ = create_test_circuit()
+    tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
+
+    # test contraction plan
+    plan = min_fill_contraction_plan(tnc)
+    @test length(plan) == 5
+
+    # test contracting the network
+    output = contract_tn!(tnc, plan)
+    ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
+    @test all(output .≈ ref)
 end
 
 @testset "Test netcon contraction" begin

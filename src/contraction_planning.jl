@@ -4,6 +4,7 @@ import QXTns
 
 export convert_to_graph, convert_to_line_graph
 export quickbb_contraction_plan, contraction_scheme
+export flow_cutter_contraction_plan, min_fill_contraction_plan
 export netcon
 
 # **************************************************************************************** #
@@ -67,7 +68,7 @@ convert_to_line_graph(tnc::TensorNetworkCircuit; kwargs...) = convert_to_line_gr
 
 
 # **************************************************************************************** #
-#                                QuickBB contraction
+#                              Contraction Planning
 # **************************************************************************************** #
 
 """
@@ -141,6 +142,111 @@ function quickbb_contraction_plan(tensors::OrderedDict{Symbol, Array{Index, 1}};
 end
 
 
+"""
+    flow_cutter_contraction_plan(tn::TensorNetwork;
+                                 time::Integer=60,
+                                 seed::Integer=-1,
+                                 hypergraph::Bool=false)
+
+Use flow cutter to create a contraction plan for 'tn'.
+
+If flow cutter does not find a tree decomposotion to turn into a contraction plan within
+the specified amount of time then the min fill heuristic is used to find a contraction plan.
+
+# Keywords
+- `time::Integer=60`: The number of seconds to run the flow cutter for.
+- `seed::Integer=-1`: Sets the seed used by flow cutter. If negative then flow cutter will 
+                      choose a seed.
+- `hypergraph::Bool=false`: Sets if hyperedges in `tn` should be accounted for.
+"""
+function flow_cutter_contraction_plan(tn::TensorNetwork; 
+                                      time::Integer=60,
+                                      seed::Integer=-1,
+                                      hypergraph::Bool=false)
+    # Convert tn to a line graph and pass it to flow cutter to find an tree decomposition.
+    lg, symbol_map = convert_to_line_graph(tn, use_hyperedges=hypergraph)
+
+    # Use flow cutter to try find a tree decomposition of the line graph.
+    td = qxg.flow_cutter(lg, time; seed=seed)
+
+    # If a tree decomposition was found, convert it into a vertex elimination order for lg,
+    # otherwise use the min fill heuristic to find an elimination order.
+    if haskey(td, :treewidth)
+        order = Symbol.(qxg.order_from_tree_decomposition(td))
+    else
+        tw, order = qxg.min_fill(lg)
+    end
+
+    # Convert the elimination order to an array of Index structs in tn.
+    order = [symbol_map[lg_vertex] for lg_vertex in order]
+
+    # Convert the elimination order into a contraction plan.
+    order_to_contraction_plan(order, tn)
+end
+
+flow_cutter_contraction_plan(tnc::TensorNetworkCircuit; kwargs...) = flow_cutter_contraction_plan(tnc.tn; kwargs...)
+
+
+"""
+    min_fill_contraction_plan(tn::TensorNetwork;
+                              hypergraph::Bool=false)
+
+Use the min fill heuristic to create a contraction plan for 'tn'.
+
+# Keywords
+- `hypergraph::Bool=false`: set if hyperedges in `tn` should be accounted for.
+"""
+function min_fill_contraction_plan(tn::TensorNetwork;
+                                   hypergraph::Bool=false)
+    # Convert tn to a line graph and pass it to flow cutter to find an tree decomposition.
+    lg, symbol_map = convert_to_line_graph(tn, use_hyperedges=hypergraph)
+
+    # Use flow cutter to try find a tree decomposition of the line graph.
+    tw, order = qxg.min_fill(lg)
+
+    # Convert the elimination order to an array of Index structs in tn.
+    order = [symbol_map[lg_vertex] for lg_vertex in order]
+
+    # Convert the elimination order into a contraction plan.
+    order_to_contraction_plan(order, tn)
+end
+
+min_fill_contraction_plan(tnc::TensorNetworkCircuit; kwargs...) = min_fill_contraction_plan(tnc.tn; kwargs...)
+
+
+"""
+    min_fill_contraction_plan(tensors::OrderedDict{Symbol, Array{Index, 1}})
+
+Use the min fill heuristic to create a contraction plan for the set of tensors described by 
+the OrderedDict `tensors`.
+
+The keys of `tensors` are assumed to be ids/names of tensors and the values are arrays of
+indices belonging to the corrseponding tensor.
+"""
+function min_fill_contraction_plan(tensors::OrderedDict{Symbol, Array{Index, 1}})
+    # Create a graph for the tensors and convert it to to a line graph.
+    tensor_ids = collect(keys(tensors))
+    g = qxg.LabeledGraph(length(tensor_ids))
+    for i = 1:length(tensor_ids)-1
+        for j = i+1:length(tensor_ids)
+            if !isempty(intersect(tensors[tensor_ids[i]], tensors[tensor_ids[j]]))
+                qxg.add_edge!(g, i, j)
+            end
+        end
+    end
+    lg = qxg.line_graph(g)
+
+    # Use the min fill heuristic to find a vertex elimination order for the line graph.
+    tw, order = qxg.min_fill(lg)
+
+    # Convert the elimination order to an array of tensor symbol pairs.
+    order = [parse.(Int, split(String(lg_vertex), '_')) for lg_vertex in order]
+    order = [[tensor_ids[edge[1]], tensor_ids[edge[2]]] for edge in order]
+
+    # Convert the elimination order into a contraction plan.
+    order_to_contraction_plan(order, tensors)
+end
+
 
 # **************************************************************************************** #
 #                         Contraction with automatic slicing
@@ -162,22 +268,32 @@ for the remaining tensor network.
 """
 function contraction_scheme(tn::TensorNetwork, num::Integer;
                             time::Integer=120,
-                            qbb_order::Symbol=:min_fill,
-                            lb::Bool=false,
+                            seed::Integer=-1,
                             score_function::Symbol=:direct_treewidth,
                             hypergraph::Bool=true)
-    # Create the line graph for the given tn and pass it to quickbb to find a contraction
-    # plan.
+    # Create the line graph for the given tn.
     lg, symbol_map = convert_to_line_graph(tn; use_hyperedges=hypergraph)
-    order, qbb_metadata = qxg.quickbb(lg; time=time, order=qbb_order, lb=lb)
+
+    # Use flow cutter to try find a tree decomposition of the line graph.
+    td = qxg.flow_cutter(lg, time; seed=seed)
+    flow_cutter_metadata = OrderedDict(1:length(td[:comments]) .=> td[:comments])
+
+    # If a tree decomposition was found, convert it into a vertex elimination order for lg,
+    # otherwise use the min fill heuristic to find an elimination order.
+    if haskey(td, :treewidth)
+        order = Symbol.(qxg.order_from_tree_decomposition(td))
+        method_used = "flow cutter"
+    else
+        tw, order = qxg.min_fill(lg)
+        method_used = "min fill heuristic"
+    end
 
     # Create a dictionary for metadata regarding the contraction plan.
     contraction_metadata = OrderedDict{String, Any}()
-    contraction_metadata["Method used"] = "quickbb"
+    contraction_metadata["Method used"] = method_used
     contraction_metadata["Time allocated"] = time
-    contraction_metadata["Ordering used"] = qbb_order
-    contraction_metadata["Lower bound flag used"] = lb
-    contraction_metadata["Returned metadata"] = OrderedDict(qbb_metadata)
+    contraction_metadata["Seed used"] = seed
+    contraction_metadata["Returned metadata"] = flow_cutter_metadata
     contraction_metadata["Hypergraph used"] = hypergraph
     contraction_metadata["Hyperedge contraction method"] = "Netcon where possible, min fill heuristic otherwise."
 
@@ -357,7 +473,7 @@ function order_to_contraction_plan(elimination_order::Array{Array{Symbol, 1}, 1}
                 if length(tensors_to_contract) < 37 && any(tensor_sizes .< 2^62)
                     local_contraction_plan = netcon(tn, tensors_to_contract)
                 else
-                    local_contraction_plan = quickbb_contraction_plan(tensors_to_contract)
+                    local_contraction_plan = min_fill_contraction_plan(tensors_to_contract)
                 end
                 append!(plan, local_contraction_plan)
 

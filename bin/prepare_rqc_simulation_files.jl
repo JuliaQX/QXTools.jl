@@ -26,7 +26,7 @@ function parse_commandline(ARGS)
             help = "Number of amplitudes"
             default = nothing
         "--seed"
-            help = "Seed to use for both circuit and amplitude selection"
+            help = "Seed to use for circuit generation, contraction planning and selecting amplitudes to compute."
             default = nothing
         "--decompose"
             help = "Set if two qubit gates should be decomposed."
@@ -82,8 +82,6 @@ function main(ARGS)
     decompose = parsed_args["decompose"]
     hypergraph = parsed_args["hypergraph"]
     time = parsed_args["time"]
-    qbb_order = parsed_args["qbb_order"]
-    lb = parsed_args["lb"]
     score_function = parsed_args["score_function"]
     verbose = parsed_args["verbose"]
 
@@ -99,8 +97,6 @@ function main(ARGS)
                               decompose=decompose,
                               hypergraph=hypergraph,
                               time=time,
-                              qbb_order=qbb_order,
-                              lb=lb,
                               score_function=score_function)
 end
 
