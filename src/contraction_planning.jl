@@ -331,7 +331,11 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
         end
         indices_to_slice[i] = indices
     end
-    indices_to_slice = vcat(indices_to_slice...)
+    if length(indices_to_slice) > 0
+        indices_to_slice = vcat(indices_to_slice...)
+    else # in case there are no edges to slice ensure return array has correct type
+        indices_to_slice = Index[]
+    end
 
     metadata = OrderedDict{String, Any}()
     metadata["Determination of contraction plan"] = contraction_metadata

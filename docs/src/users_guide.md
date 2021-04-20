@@ -1,7 +1,7 @@
 # User's Guide
 
 QXTools generates output files which provide a description of the computations and data
-required to perform the simulation. There are three output files:
+required to perform a simulation. There are three output files:
 
 - Parameter file: This YAML file provides informations on the sliced edges and dimensions as well
 as details of the output amplitudes or sampling method
@@ -72,56 +72,42 @@ instructions work.
 An example of the DSL generated for the contraction of a two qubit GHZ circuit looks like.
 
 ```
-# version: 0.2.0
+# version: 0.3.0
 # Determination of contraction plan :
-#   Method used : quickbb
-#   Time allocated : 120
-#   Ordering used : min_fill
-#   Lower bound flag used : false
+#   Method used : flow cutter
+#   Time allocated : 10
+#   Seed used : -1
 #   Returned metadata :
-#     treewidth : 2
-#     is_optimal : true
-#     time : 0.000147
-#   Hypergraph used : false
+#     1 : c min degree heuristic
+#     2 : c status 3 1618911763948
+#     3 : c min shortcut heuristic
+#     4 : c run with 0.0/0.1/0.2 min balance and node_min_expansion in endless loop with varying seed
+#   Hypergraph used : true
 #   Hyperedge contraction method : Netcon where possible, min fill heuristic otherwise.
 # Slicing :
 #   Method used : greedy treewidth deletion
 #   Edges sliced : 2
 #   Score fucntion used : direct_treewidth
-#   Treewidths after slicing consecutive edges : [1, 1]
+#   Treewidths after slicing consecutive edges : [1, 0]
 outputs 2
 load t1 data_1
 load t2 data_2
 load t3 data_3
 load t4 data_4
 load t5 data_4
-view t2_$v1 t2 3 $v1
-del t2
-view t3_$v1 t3 1 $v1
-del t3
-view t1_$v1 t1 1 $v1
-del t1
-view $o1_$v1 $o1 1 $v1
-del $o1
-ncon I1 2 t3_$v1 2 $o1_$v1 2
-del t3_$v1
-del $o1_$v1
-ncon I2 1 t1_$v1 1,2 t4 2
-del t1_$v1
-del t4
-ncon I3 1,3 t2_$v1 1,2,3 t5 2
-del t2_$v1
-del t5
-ncon I4 2 I3 1,2 $o2 1
-del I3
-del $o2
-ncon t8 2 I1 2 I2 2
-del I1
-del I2
-ncon t9 0 t8 1 I4 1
-del t8
-del I4
-save t9 output
+view o1_s o1 1 v1
+view t3_s t3 1 v1
+view t2_s t2 3 v1
+view t1_s t1 1 v1
+view t5_s t5 1 v2
+view t2_s_s t2_s 2 v2
+ncon I1 2,3 t2_s_s 1,2,3 o2 1
+ncon I2 1 t1_s 1,2 t4 2
+ncon t8 1 o1_s 1 t3_s 1
+ncon t9 1,3 t8 1 t5_s 3
+ncon t10 1 t9 1,3 I1 3,1
+ncon t11 0 t10 1 I2 1
+save t11 output
 ```
 
 ### DSL Format and Instructions

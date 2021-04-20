@@ -60,7 +60,7 @@ end
     b_hyper_indices = [[1, 2]]
     t1 = push!(tn, QXTensor(as, a_hyper_indices))
     t2 = push!(tn, QXTensor(bs, b_hyper_indices))
-    QXTools.write_ncon_command(io, tn, t1, t2, :t3)
+    write(io, QXTools.gen_ncon_command(tn, t1, t2, :t3))
     cmd = String(take!(io))
     @test cmd == "ncon t3 1,2 t1 1,2 t2 2\n"
 
@@ -72,7 +72,7 @@ end
     b_hyper_indices = Array{Int64,1}[]
     t1 = push!(tn, QXTensor(as, a_hyper_indices))
     t2 = push!(tn, QXTensor(bs, b_hyper_indices))
-    QXTools.write_ncon_command(io, tn, t1, t2, :t3)
+    write(io, QXTools.gen_ncon_command(tn, t1, t2, :t3))
     cmd = String(take!(io))
     @test cmd == "ncon t3 0 t1 1 t2 1,1\n"
 
@@ -91,7 +91,7 @@ end
     push!(tn, QXTensor(b_i, b_hyper))
 
     io = IOBuffer()
-    QXTools.write_ncon_command(io, tn, :t1, :t2, :t3)
+    write(io, QXTools.gen_ncon_command(tn, :t1, :t2, :t3))
     @test String(take!(io)) == "ncon t3 1,3,5,2,9,10 t1 1,2,3,5,2,9 t2 2,10\n"
 end
 
