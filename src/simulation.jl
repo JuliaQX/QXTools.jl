@@ -46,11 +46,19 @@ file with the parameters to use during the simulation.
 """
 function generate_simulation_files(circ::QXZoo.Circuit.Circ;
                                    number_bonds_to_slice::Int=2,
+                                   output_method::Symbol=:uniform,
                                    output_prefix::String="simulation_input",
+<<<<<<< HEAD
                                    num_amplitudes::Union{Int64, Nothing}=10,
+=======
+>>>>>>> 8826b72... Add sampling parameters to generated simulation files
                                    seed::Union{Int64, Nothing}=nothing,
                                    decompose::Bool=true,
+                                   num_amplitudes::Union{Int64, Nothing}=nothing,
+                                   M::Float64=0.0001,
+                                   fix_M::Bool=false,
                                    kwargs...)
+
     @info("Convert circuit to tensor network")
     tnc = convert_to_tnc(circ; decompose=decompose)
     @info("Tensor network created with $(length(tnc)) tensors and $(length(bonds(tnc))) bonds")
@@ -72,7 +80,23 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
     bond_groups_to_slice = expand_slice_bonds_to_hyperindices(tnc.tn, bonds_to_slice)
 
     @info("Write parameter file for retrieving $num_amplitudes amplitudes")
-    generate_parameter_file(output_prefix, bond_groups_to_slice, amplitudes)
+    output_args = Dict()
+    output_args[:output_method] = output_method
+    if output_method == :rejection
+        output_args[:M] = M
+        output_args[:fix_M] = fix_M
+        output_args[:seed] = seed
+        output_args[:num_samples] = num_amplitudes === nothing ? 10 : num_amplitudes
+
+    elseif output_method == :uniform
+        if num_amplitudes === nothing
+            amplitudes = amplitudes_all(qubits(tnc))
+        else
+            amplitudes = amplitudes_uniform(qubits(tnc), seed, num_amplitudes)
+        end
+        output_args[:bitstrings] = collect(amplitudes)
+    end
+    generate_parameter_file(output_prefix, bond_groups_to_slice; output_args...)
 
     @info("Prepare DSL and data files")
     generate_dsl_files(tnc, output_prefix, plan, bond_groups_to_slice; force=true, metadata=metadata)

@@ -261,22 +261,37 @@ function write_view_command(dsl_io::IO, tn::TensorNetwork, tensor_sym::Symbol, n
 end
 
 """
-    generate_parameter_file(filename::String
+    generate_parameter_file(filename::String,
                             sliced_bond_groups::Array{<:Array{<:Index, 1}, 1},
                             amplitudes::Union{Base.Generator, <: AbstractArray})
 
 Generate a yml file with parameters corresponding to partitions and dimensions of each
 along with the amplitudes to contract for.
+
+output:
+    fix_M: false
+    M: 0.001
+    num_samples: 10
+    output_method: rejection
+    seed: ~
+partitions:
+    parameters:
+        v1: 2
+        v2: 2
 """
 function generate_parameter_file(filename_prefix::String,
-                                 sliced_bond_groups::Array{<:Array{<:Index, 1}, 1},
-                                 amplitudes::Union{Base.Generator, <: AbstractArray})
+                                 sliced_bond_groups::Array{<:Array{<:Index, 1}, 1};
+                                 output_parameters...)
+    
     partition_dims = OrderedDict{String, Int64}()
     for (i, sliced_bond_group) in enumerate(sliced_bond_groups)
         partition_dims["v$i"] = QXTns.dim(sliced_bond_group[1])
     end
     partition_parameters = Dict("parameters" => partition_dims)
-    config = Dict("partitions" => partition_parameters,
-                         "amplitudes" => collect(amplitudes))
+
+    config = Dict()
+    config["partitions"] = partition_parameters
+    config["output"] = output_parameters
+
     YAML.write_file("$(filename_prefix).yml", config)
 end
