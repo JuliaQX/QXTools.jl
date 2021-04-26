@@ -123,15 +123,14 @@ outputs 2
 ```
 
 This line indicates that the tensor network has two output tensors. These tensors are represented in subsequent DSL
-commands by symbols in the format `o{i}` where `{i}` is the index of the given output. To contraction for
-different outputs then involves change that data that these symbols point to prior to the contraction. This is done
-using the `set_output_bonds!` function.
+commands by symbols in the format `o{i}`, where `{i}` is the index of the given output.
+To contract the tensor network with different values for the output tensors, the data these symbols point to needs to be updated.
 
 #### Load
 
 Load instructions define a new tensor symbol using data from the input file. Here the first argument is the
 name of the new symbol and the second argument is the key to find the data in the input [Data File](@ref).
-It is normal that multiple tensor symbols have the same data associated with them, e.g. multiple occurences of the same
+It is normal that multiple tensor symbols have the same data associated with them, e.g. multiple occurrences of the same
 gate. In the following example both `t4` and `t5` both used the data labeled `data_4` in the input [Data File][@ref]
 
 ```

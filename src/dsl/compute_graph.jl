@@ -18,28 +18,6 @@ end
 BinaryNode(data) = BinaryNode{typeof(data)}(data)
 
 """
-    leftchild(data, parent::BinaryNode)
-
-Returns left child node or nothing
-"""
-function leftchild(data, parent::BinaryNode)
-    !isdefined(parent, :left) || error("left child is already assigned")
-    node = typeof(parent)(data, parent)
-    parent.left = node
-end
-
-"""
-    rightchild(data, parent::BinaryNode)
-
-Returns right child node or nothing
-"""
-function rightchild(data, parent::BinaryNode)
-    !isdefined(parent, :right) || error("right child is already assigned")
-    node = typeof(parent)(data, parent)
-    parent.right = node
-end
-
-"""
     AbstractTrees.children(node::BinaryNode)
 
 Implement children function from AbstractTrees package
@@ -119,22 +97,6 @@ end
 
 AbstractTrees.printnode(io::IO, node::BinaryNode{ContractCommand}) = print(io, node.data.output_name)
 
-"""
-    remove_repeated!(indices::Vector{Int64})
-
-Given a list of integers, only keep first occurence of each
-"""
-function remove_repeated!(indices::Vector{Int64})
-    to_remove = Int64[]
-    for i in 1:length(indices)
-        if findfirst(x -> x == indices[i], indices) != i
-            push!(to_remove, i)
-        end
-    end
-    for i in sort(to_remove, rev=true) popat!(indices, i) end
-    indices
-end
-
 function _remove_repeated_in_output!(cmd::ContractCommand, indices::Vector{Int64})
     # first we create a map of all indices and start with them mapping to themselves
     all_idx = Set([cmd.output_idxs..., cmd.left_idxs..., cmd.right_idxs...])
@@ -161,8 +123,28 @@ end
 Descend contraction tree simplifying contraction commands by removing repeated indices.
 Repeated indices occur where two indices of a tensor are hyper indices of another tensor.
 The process of removing these given a node consists of:
+
 1. Check if there are repeated indices in lists of left or right indices
-2. If there are then
+2. If there are repeated indices for either set of indices, remove any after the first
+occurence and call this function on the relevant child passing the original index list
+
+For example, when the node has the format
+````
+ncon d 1 c 2,2,3 e 1,3
+```
+where `c` is created with
+```
+ncon c 1,3,4 a 1,2 b 2,3,4
+```
+we first update initial command to
+```
+ncon d 1 c 2,3 e 1,3
+```
+and then update the command which gives c to
+```
+ncon c 1,4 a 1,2 b 2,1,4
+```
+In this way we can decreast the rank of the largest tensors
 """
 function remove_repeated!(node::BinaryNode{ContractCommand}, indices=nothing)
     if indices !== nothing
@@ -171,10 +153,10 @@ function remove_repeated!(node::BinaryNode{ContractCommand}, indices=nothing)
     is_hyper = x -> length(x) > length(Set(x))
     if is_hyper(node.data.left_idxs) && isdefined(node, :left)
         remove_repeated!(node.left, node.data.left_idxs)
-        remove_repeated!(node.data.left_idxs)
+        unique!(node.data.left_idxs)
     end
     if is_hyper(node.data.right_idxs) && isdefined(node, :right)
         remove_repeated!(node.right, node.data.right_idxs)
-        remove_repeated!(node.data.right_idxs)
+        unique!(node.data.right_idxs)
     end
 end
