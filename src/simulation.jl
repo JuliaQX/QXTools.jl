@@ -46,7 +46,7 @@ file with the parameters to use during the simulation.
 """
 function generate_simulation_files(circ::QXZoo.Circuit.Circ;
                                    number_bonds_to_slice::Int=2,
-                                   output_method::Symbol=:uniform,
+                                   output_method::Symbol=:list,
                                    output_prefix::String="simulation_input",
 <<<<<<< HEAD
                                    num_amplitudes::Union{Int64, Nothing}=10,
@@ -83,12 +83,13 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
     output_args = Dict()
     output_args[:output_method] = output_method
     if output_method == :rejection
+        output_args[:num_qubits] = tnc.qubits
         output_args[:M] = M
         output_args[:fix_M] = fix_M
         output_args[:seed] = seed
         output_args[:num_samples] = num_amplitudes === nothing ? 10 : num_amplitudes
 
-    elseif output_method == :uniform
+    elseif output_method == :list
         if num_amplitudes === nothing
             amplitudes = amplitudes_all(qubits(tnc))
         else
