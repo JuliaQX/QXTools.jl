@@ -69,8 +69,8 @@ will generate the files:
 - `ghz_3.jld`: A data file with tensors
 - `ghz_3.yml`: A parameter file with parameters controlling the simulation
 
-These can be used as input to QXRun to run the simulation on HPC clusters to calculate the amplitudes for 4 bitstrings sampled uniformly.
-For more details and options see the documentation at [docs](doc_url).
+These can be used as input to QXContexts to run the simulation on HPC clusters to calculate the amplitudes for 4 bitstrings sampled uniformly.
+For more details and options see the documentation at [docs](https://juliaqx.github.io/QXContexts.jl/dev/).
 
 # Contributing
 Contributions from users are welcome and we encourage users to open issues and submit merge/pull requests for any problems or feature requests they have. The

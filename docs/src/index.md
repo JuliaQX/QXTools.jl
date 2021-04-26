@@ -13,7 +13,7 @@ The design and implementation of QXTools and related packages was inspired by ma
 ## Where to begin
 
 For getting QXTools installed and setup, see the [Getting Started](@ref) section which has instructions on how to install QXTools and some hello world examples.
-The "Tutorials" section contains some more indepth examples and the "Users Guide" has more details of the design and structure of QXTools.
+The "Tutorials" section contains some more in-depth examples and the "Users Guide" has more details of the design and structure of QXTools.
 
 ```@contents
 Pages = ["users_guide.md"]

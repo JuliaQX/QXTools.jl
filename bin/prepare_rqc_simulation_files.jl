@@ -71,7 +71,9 @@ function main(ARGS)
     depth = parsed_args["depth"]
     number_bonds_to_slice = parsed_args["sliced_bonds"]
     num_amplitudes = parsed_args["amplitudes"]
-    if num_amplitudes !== nothing
+    if num_amplitudes === nothing
+        num_amplitudes = 10
+    else
         num_amplitudes = parse(Int64, num_amplitudes)
     end
     output_prefix = parsed_args["prefix"]
