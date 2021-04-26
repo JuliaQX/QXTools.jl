@@ -10,14 +10,14 @@ include("../bin/prepare_rqc_simulation_files.jl")
     # create empty temporary directory
     mktempdir() do path
         prefix = joinpath(path, "rqc_3_3_8")
-        args = ["-p", prefix, "--time", "30"]
+        args = ["-p", prefix, "--time", "30", "-a", "15"]
         Logging.with_logger(Logging.NullLogger()) do # suppress logging
             main(args)
         end
         @test all([isfile(prefix * suffix) for suffix in [".qx", ".jld2", ".yml"]])
 
         params = YAML.load_file(prefix * ".yml")
-        @test length(params["amplitudes"]) == 2^9
+        @test length(params["amplitudes"]) == 15
     end
 
     # create empty temporary directory
