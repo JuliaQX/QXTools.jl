@@ -1,7 +1,7 @@
 # User's Guide
 
 QXTools generates output files which provide a description of the computations and data
-required to perform the simulation. There are three output files:
+required to perform a simulation. There are three output files:
 
 - Parameter file: This YAML file provides informations on the sliced edges and dimensions as well
 as details of the output amplitudes or sampling method
@@ -72,89 +72,66 @@ instructions work.
 An example of the DSL generated for the contraction of a two qubit GHZ circuit looks like.
 
 ```
-# version: 0.2.0
+# version: 0.3.0
 # Determination of contraction plan :
-#   Method used : quickbb
-#   Time allocated : 120
-#   Ordering used : min_fill
-#   Lower bound flag used : false
+#   Method used : flow cutter
+#   Time allocated : 10
+#   Seed used : -1
 #   Returned metadata :
-#     treewidth : 2
-#     is_optimal : true
-#     time : 0.000147
-#   Hypergraph used : false
+#     1 : c min degree heuristic
+#     2 : c status 3 1618911763948
+#     3 : c min shortcut heuristic
+#     4 : c run with 0.0/0.1/0.2 min balance and node_min_expansion in endless loop with varying seed
+#   Hypergraph used : true
 #   Hyperedge contraction method : Netcon where possible, min fill heuristic otherwise.
 # Slicing :
 #   Method used : greedy treewidth deletion
 #   Edges sliced : 2
 #   Score fucntion used : direct_treewidth
-#   Treewidths after slicing consecutive edges : [1, 1]
+#   Treewidths after slicing consecutive edges : [1, 0]
 outputs 2
 load t1 data_1
 load t2 data_2
 load t3 data_3
 load t4 data_4
 load t5 data_4
-view t2_$v1 t2 3 $v1
-del t2
-view t3_$v1 t3 1 $v1
-del t3
-view t1_$v1 t1 1 $v1
-del t1
-view $o1_$v1 $o1 1 $v1
-del $o1
-ncon I1 2 t3_$v1 2 $o1_$v1 2
-del t3_$v1
-del $o1_$v1
-ncon I2 1 t1_$v1 1,2 t4 2
-del t1_$v1
-del t4
-ncon I3 1,3 t2_$v1 1,2,3 t5 2
-del t2_$v1
-del t5
-ncon I4 2 I3 1,2 $o2 1
-del I3
-del $o2
-ncon t8 2 I1 2 I2 2
-del I1
-del I2
-ncon t9 0 t8 1 I4 1
-del t8
-del I4
-save t9 output
+view o1_s o1 1 v1
+view t3_s t3 1 v1
+view t2_s t2 3 v1
+view t1_s t1 1 v1
+view t5_s t5 1 v2
+view t2_s_s t2_s 2 v2
+ncon I1 2,3 t2_s_s 1,2,3 o2 1
+ncon I2 1 t1_s 1,2 t4 2
+ncon t8 1 o1_s 1 t3_s 1
+ncon t9 1,3 t8 1 t5_s 3
+ncon t10 1 t9 1,3 I1 3,1
+ncon t11 0 t10 1 I2 1
+save t11 output
 ```
 
 ### DSL Format and Instructions
 
 The DSL file is a regular ASCII text file with one instruction per line. Lines beginning with `#` are comments which are
-ignored (except for the first line which contains version information). The first line should have a version string
+ignored (except for the first line which contains version information). The first line has a version string
 which specifies the format version. Comments following the first line contain metadata about the methods used
-to determine the contraction plan used and which edges to slice. Symbols prefixed by a dollar sign indicate variables which are take different values
-for each iteration of the computation. An explanation of each instruction follows
+to determine the contraction plan used and which edges to slice.
 
 #### Outputs
 ```
 outputs 2
 ```
 
-This line indicates that the tensor network has two output tensors. This will create symbols for each of the possible values of
-these output tensors. For a quantum circuit, measurement is performed the computational basis which means that the possible values for the output
-tensors are the vectors `[1, 0]` and `[0, 1]` corresponding to the $| 0 \rangle$ and $| 1 \rangle$ states respectively. For two outputs the following
-symbols and mappings will be defined
-
-```
-o1_0 => [1, 0]
-o1_1 => [0, 1]
-o2_0 => [1, 0]
-o2_1 => [0, 1]
-```
+This line indicates that the tensor network has two output tensors. These tensors are represented in subsequent DSL
+commands by symbols in the format `o{i}`, where `{i}` is the index of the given output.
+To contract the tensor network with different values for the output tensors, the data these symbols point to needs to be updated.
 
 #### Load
 
 Load instructions define a new tensor symbol using data from the input file. Here the first argument is the
 name of the new symbol and the second argument is the key to find the data in the input [Data File](@ref).
-Mulitple tensor symbols can have the same data associated with them. In the following example both `t4` and `t5`
-will have the same data associated with them.
+It is normal that multiple tensor symbols have the same data associated with them, e.g. multiple occurrences of the same
+gate. In the following example both `t4` and `t5` both used the data labeled `data_4` in the input [Data File][@ref]
 
 ```
 load t1 data_1
@@ -166,28 +143,33 @@ load t5 data_4
 
 #### View
 
-A view instruction creates a new tensor symbol by taking a view of an existing tensor. The first argument is the new symbol name, the second is the symbol of the tesnor to take the view on, the third argument is the dimension and the final value is the particular value for that dimension. An example view command is as follows
+A view instruction creates a new tensor symbol by taking a view of an existing tensor.
+The first argument is the new symbol name, the second is the symbol of the tensor to take
+the view of, the third argument is the dimension and the final value is the particular value
+for that dimension. An example view command is as follows
 
 ```
-view t13_$v1 t13 3 $v1
+view t13_s t13 3 v1
 ```
 
-The `$v1` variable will be replaced by a particular value before execution as described in the [Parameter File](@ref) section.
-
-#### Delete
-
-The `del` instructions marks a particular tensor for deletion and indicates that it will not be used for the rest of that contraction.
+The `v1` variable will be replaced by a particular value before execution as described in
+the [Parameter File](@ref) section.
 
 #### Contraction
 
-The `ncon` instruction specificies a pairwise contraction of tensors. An example contraction command is as follows
+The `ncon` instruction specifies a pairwise contraction of tensors.
+An example contraction command is as follows
 
 ```
-ncon t15 2,3 $o1 1 t14_$v1_$v2 2,1,3
+ncon t15 2,3 o1 1 t14_s_s 2,1,3
 ```
 
-Which indicates that the `$o1` tensor should be contracted with the `t14_$v1_v2` tensor to get the `t15` tensor. The contraction should be performed over the only rank of the `$o1` tensor and the second rank of the `t14_$v1_$v2` tensor. Einstein summation notation is used for for specifying which indices to contract over. This convention uses repeated indices on the right hand side to indicate that those indices should be contracted over. In the above the `1` index appears twice on the right hand side which indicates that this index should be contracted over.
-For the case where one of the tensors is a scalar, a `0` is used as a placeholder for the indices.
+Which indicates that the `o1` tensor should be contracted with the `t14_s_s` tensor to get the `t15` tensor.
+The contraction should be performed over the only rank of the `o1` tensor and the second rank of the `t14_s_s` tensor.
+Einstein summation notation is used for for specifying which indices to contract over.
+This convention uses repeated indices on the right hand side to indicate that those indices should be contracted over.
+In the above, the `1` index appears twice on the right hand side which indicates that this index should be contracted over.
+For the case where one of the tensors is a scalar, a `0` is used as a placeholder.
 For example if `t1` is a scalar tensor and `t2` is a matrix,
 the multiplication of the matrix by the scalar can be expressed as
 
@@ -200,10 +182,11 @@ is repeated on the right hand side and also appears on the left hand side.
 
 #### Save
 
-The save instruction indicates that the given tensor is an output from the contraction and provides a label for this. The
-value of this tensor will then be used in a reduction operation and/or written to the output file.
+The save instruction indicates that the given tensor is an output from the contraction and provides a label for this.
+The value of this tensor will then be used in a reduction operation and/or written to the output file.
 
 
 ## Data File
 
-The data file is a [JLD](https://github.com/JuliaIO/JLD.jl) file and contains the numerical values of the initial tensors. Each tensor is stored as a multi-dimensional array with a data label that is referenced in `load` commands of the DSL file.
+The data file is a [JLD](https://github.com/JuliaIO/JLD.jl) file and contains the numerical values of the initial tensors.
+Each tensor is stored as a multi-dimensional array with a data label that is referenced in `load` commands of the DSL file.
