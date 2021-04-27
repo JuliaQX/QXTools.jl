@@ -108,10 +108,3 @@ end
     cmd = String(take!(io))
     @test cmd == "view t1v1 t1 2 v1\n"
 end
-
-@testset "Test compute graph" begin
-
-
-
-end
-
