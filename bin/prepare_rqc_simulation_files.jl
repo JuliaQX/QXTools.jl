@@ -45,8 +45,8 @@ function parse_commandline(ARGS)
             help = "Method for selecting amplitudes to output. (:uniform, :rejection, :list)"
             default = :list
             arg_type = Symbol
-        "--amplitudes", "-a"
-            help = "Number of amplitudes to output"
+        "--num_outputs", "-n"
+            help = "Number of amplitudes or bitstring samples to output"
             default = nothing
         "--M"
             help = "Constant to use for rejection sampling"
@@ -56,6 +56,9 @@ function parse_commandline(ARGS)
             help = "Fix rejection sampling constant for frugal sampling"
             default = false
             arg_type = Bool
+        "--bitstrings"
+            help = "The bitstrings to compute amplitudes for if list output method is selected"
+            default = nothing
         "--prefix", "-p"
             help = "Prefix to use for output files"
             required = true
@@ -86,15 +89,11 @@ function main(ARGS)
 
     # Output parameters.
     output_method = parsed_args["output_method"]
-    num_amplitudes = parsed_args["amplitudes"]
-    if num_amplitudes === nothing
-        num_amplitudes = 10
-    else
-        num_amplitudes = parse(Int64, num_amplitudes)
-    end
+    num_outputs = parsed_args["num_outputs"]
+    num_outputs === nothing || (num_outputs = parse(Int64, num_outputs))
     M = parsed_args["M"]
     fix_M = parsed_args["fix_M"]
-
+    bitstrings = parsed_args["bitstrings"]
 
     # Other parameters.
     seed = parsed_args["seed"]
@@ -110,16 +109,17 @@ function main(ARGS)
 
     generate_simulation_files(circ;
                               number_bonds_to_slice=number_bonds_to_slice,
+                              decompose=decompose,
                               output_prefix=output_prefix,
                               output_method=output_method,
-                              num_amplitudes=num_amplitudes,
+                              num_outputs=num_outputs,
                               seed=seed,
-                              decompose=decompose,
                               hypergraph=hypergraph,
                               time=time,
                               score_function=score_function,
                               M=M,
-                              fix_M=fix_M)
+                              fix_M=fix_M,
+                              bitstrings=bitstrings)
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
