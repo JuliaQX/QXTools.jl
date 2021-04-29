@@ -21,6 +21,7 @@ TestSetExtensions = "98d24dd4-01ad-11ea-1b02-c9a08f80db04"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
+AbstractTrees = "0.3"
 ArgParse = "1.1"
 DataStructures = "0.18"
 FileIO = "1.6"
