@@ -17,7 +17,7 @@ include("../bin/prepare_rqc_simulation_files.jl")
         @test all([isfile(prefix * suffix) for suffix in [".qx", ".jld2", ".yml"]])
 
         params = YAML.load_file(prefix * ".yml")
-        @test length(params["output"]["bitstrings"]) == 15
+        @test length(params["output"]["params"]["bitstrings"]) == 15
     end
 
     # create empty temporary directory
@@ -31,8 +31,8 @@ include("../bin/prepare_rqc_simulation_files.jl")
         @test all([isfile(prefix * suffix) for suffix in [".qx", ".jld2", ".yml"]])
 
         params = YAML.load_file(prefix * ".yml")
-        @test params["output"]["output_method"] == "rejection"
-        @test params["output"]["num_samples"] == N
+        @test params["output"]["method"] == "rejection"
+        @test params["output"]["params"]["num_samples"] == N
     end
 
     # create empty temporary directory
@@ -46,7 +46,7 @@ include("../bin/prepare_rqc_simulation_files.jl")
         @test all([isfile(prefix * suffix) for suffix in [".qx", ".jld2", ".yml"]])
 
         params = YAML.load_file(prefix * ".yml")
-        @test length(params["output"]["bitstrings"]) <= N
+        @test length(params["output"]["params"]["bitstrings"]) <= N
     end
 end
 end

@@ -280,8 +280,8 @@ partitions:
         v2: 2
 """
 function generate_parameter_file(filename_prefix::String,
-                                 sliced_bond_groups::Array{<:Array{<:Index, 1}, 1};
-                                 output_parameters...)
+                                 sliced_bond_groups::Array{<:Array{<:Index, 1}, 1},
+                                 output_parameters)
     
     partition_dims = OrderedDict{String, Int64}()
     for (i, sliced_bond_group) in enumerate(sliced_bond_groups)
@@ -290,8 +290,8 @@ function generate_parameter_file(filename_prefix::String,
     partition_parameters = Dict("parameters" => partition_dims)
 
     config = Dict()
-    config["partitions"] = partition_parameters
     config["output"] = output_parameters
+    config["partitions"] = partition_parameters
 
     YAML.write_file("$(filename_prefix).yml", config)
 end

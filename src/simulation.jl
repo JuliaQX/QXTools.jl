@@ -70,13 +70,14 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
 
     @info("Write parameter file for retrieving $num_outputs amplitudes")
     output_args = OrderedDict()
-    output_args[:output_method] = output_method
+    output_args[:method] = output_method
+    output_params = OrderedDict()
     if output_method == :rejection
-        output_args[:num_qubits] = tnc.qubits
-        output_args[:M] = M
-        output_args[:fix_M] = fix_M
-        output_args[:seed] = seed
-        output_args[:num_samples] = num_outputs === nothing ? 10 : num_outputs
+        output_params[:num_qubits] = tnc.qubits
+        output_params[:M] = M
+        output_params[:fix_M] = fix_M
+        output_params[:seed] = seed
+        output_params[:num_samples] = num_outputs === nothing ? 10 : num_outputs
 
     elseif output_method == :list
         if bitstrings === nothing
@@ -85,15 +86,16 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
         if num_outputs === nothing
             num_outputs = length(bitstrings)
         end
-        output_args[:num_samples] = num_outputs
-        output_args[:bitstrings] = collect(bitstrings)[1:num_outputs]
+        output_params[:num_samples] = num_outputs
+        output_params[:bitstrings] = collect(bitstrings)[1:num_outputs]
 
     elseif output_method == :uniform
-        output_args[:num_qubits] = tnc.qubits
-        output_args[:num_samples] = num_outputs === nothing ? 10 : num_outputs
-        output_args[:seed] = seed
+        output_params[:num_qubits] = tnc.qubits
+        output_params[:num_samples] = num_outputs === nothing ? 10 : num_outputs
+        output_params[:seed] = seed
     end
-    generate_parameter_file(output_prefix, bond_groups_to_slice; output_args...)
+    output_args[:params] = output_params
+    generate_parameter_file(output_prefix, bond_groups_to_slice, output_args)
 
     @info("Prepare DSL and data files")
     generate_dsl_files(tnc, output_prefix, plan, bond_groups_to_slice; force=true, metadata=metadata)
