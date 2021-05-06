@@ -18,13 +18,6 @@ function parse_commandline(ARGS)
             help = "Number layers"
             default = 8
             arg_type = Int64
-        "--sliced_bonds", "-s"
-            help = "Number bonds to slice"
-            default = 2
-            arg_type = Int64
-        "--amplitudes", "-a"
-            help = "Number of amplitudes"
-            default = nothing
         "--seed"
             help = "Seed to use for circuit generation, contraction planning and selecting amplitudes to compute."
             default = nothing
@@ -37,21 +30,35 @@ function parse_commandline(ARGS)
             default = true
             arg_type = Bool
         "--time"
-            help = "The number of seconds to run quickbb for."
-            default = 120
+            help = "The number of seconds to run flow cutter for."
+            default = 30
             arg_type = Int64
-        "--qbb_order"
-            help = "The branching order to be used by quickbb."
-            default = :min_fill
-            arg_type = Symbol
-        "--lb"
-            help = "Set if a lowerbound for the treewidth should be computed."
-            default = false
-            arg_type = Bool
+        "--sliced_bonds", "-s"
+            help = "Number bonds to slice"
+            default = 2
+            arg_type = Int64
         "--score_function"
             help = "Function to maximise when selecting vertices to remove."
             default = :direct_treewidth
             arg_type = Symbol
+        "--output_method"
+            help = "Method for selecting amplitudes to output. (uniform, rejection, list)"
+            default = :list
+            arg_type = Symbol
+        "--num_outputs", "-n"
+            help = "Number of amplitudes or bitstring samples to output"
+            default = nothing
+        "--M"
+            help = "Constant to use for rejection sampling"
+            default = 0.001
+            arg_type = Float64
+        "--fix_M"
+            help = "Fix rejection sampling constant for frugal sampling"
+            default = false
+            arg_type = Bool
+        "--bitstrings"
+            help = "The bitstrings to compute amplitudes for if list output method is selected"
+            default = nothing
         "--prefix", "-p"
             help = "Prefix to use for output files"
             required = true
@@ -66,25 +73,34 @@ end
 function main(ARGS)
     parsed_args = parse_commandline(ARGS)
 
+    # Citcuit parameters.
     rows = parsed_args["rows"]
     cols = parsed_args["cols"]
     depth = parsed_args["depth"]
+
+    # Tensor network parameters.
+    decompose = parsed_args["decompose"]
+    hypergraph = parsed_args["hypergraph"]
+
+    # Contraction and slicing parameters.
+    time = parsed_args["time"]
+    score_function = parsed_args["score_function"]
     number_bonds_to_slice = parsed_args["sliced_bonds"]
-    num_amplitudes = parsed_args["amplitudes"]
-    if num_amplitudes === nothing
-        num_amplitudes = 10
-    else
-        num_amplitudes = parse(Int64, num_amplitudes)
-    end
-    output_prefix = parsed_args["prefix"]
+
+    # Output parameters.
+    output_method = parsed_args["output_method"]
+    num_outputs = parsed_args["num_outputs"]
+    num_outputs === nothing || (num_outputs = parse(Int64, num_outputs))
+    M = parsed_args["M"]
+    fix_M = parsed_args["fix_M"]
+    bitstrings = parsed_args["bitstrings"]
+
+    # Other parameters.
     seed = parsed_args["seed"]
     if seed !== nothing
         seed = parse(Int64, seed)
     end
-    decompose = parsed_args["decompose"]
-    hypergraph = parsed_args["hypergraph"]
-    time = parsed_args["time"]
-    score_function = parsed_args["score_function"]
+    output_prefix = parsed_args["prefix"]
     verbose = parsed_args["verbose"]
 
     @info("Create circuit with $(rows * cols) qubits")
@@ -93,13 +109,17 @@ function main(ARGS)
 
     generate_simulation_files(circ;
                               number_bonds_to_slice=number_bonds_to_slice,
-                              output_prefix=output_prefix,
-                              num_amplitudes=num_amplitudes,
-                              seed=seed,
                               decompose=decompose,
+                              output_prefix=output_prefix,
+                              output_method=output_method,
+                              num_outputs=num_outputs,
+                              seed=seed,
                               hypergraph=hypergraph,
                               time=time,
-                              score_function=score_function)
+                              score_function=score_function,
+                              M=M,
+                              fix_M=fix_M,
+                              bitstrings=bitstrings)
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

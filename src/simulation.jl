@@ -46,11 +46,16 @@ file with the parameters to use during the simulation.
 """
 function generate_simulation_files(circ::QXZoo.Circuit.Circ;
                                    number_bonds_to_slice::Int=2,
-                                   output_prefix::String="simulation_input",
-                                   num_amplitudes::Union{Int64, Nothing}=10,
-                                   seed::Union{Int64, Nothing}=nothing,
                                    decompose::Bool=true,
+                                   output_method::Symbol=:list,
+                                   output_prefix::String="simulation_input",
+                                   seed::Union{Int64, Nothing}=nothing,
+                                   num_outputs::Union{Int64, Nothing}=nothing,
+                                   M::Float64=0.0001,
+                                   fix_M::Bool=false,
+                                   bitstrings::Union{Vector{String}, Nothing}=nothing,
                                    kwargs...)
+
     @info("Convert circuit to tensor network")
     tnc = convert_to_tnc(circ; decompose=decompose)
     @info("Tensor network created with $(length(tnc)) tensors and $(length(bonds(tnc))) bonds")
@@ -61,18 +66,36 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
                                                         seed=fc_seed,
                                                         kwargs...)
 
-    # TODO: This part will probably be replaced by a block of code to create variables
-    # for whichever sampling method the user chooses to use.
-    if num_amplitudes === nothing
-        amplitudes = amplitudes_all(qubits(tnc))
-    else
-        amplitudes = amplitudes_uniform(qubits(tnc), seed, num_amplitudes)
-    end
-
     bond_groups_to_slice = expand_slice_bonds_to_hyperindices(tnc.tn, bonds_to_slice)
 
-    @info("Write parameter file for retrieving $num_amplitudes amplitudes")
-    generate_parameter_file(output_prefix, bond_groups_to_slice, amplitudes)
+    @info("Write parameter file for retrieving $num_outputs amplitudes")
+    output_args = OrderedDict()
+    output_args[:method] = output_method
+    output_params = OrderedDict()
+    if output_method == :rejection
+        output_params[:num_qubits] = tnc.qubits
+        output_params[:M] = M
+        output_params[:fix_M] = fix_M
+        output_params[:seed] = seed
+        output_params[:num_samples] = num_outputs === nothing ? 10 : num_outputs
+
+    elseif output_method == :list
+        if bitstrings === nothing
+            bitstrings = amplitudes_all(qubits(tnc))
+        end
+        if num_outputs === nothing
+            num_outputs = length(bitstrings)
+        end
+        output_params[:num_samples] = num_outputs
+        output_params[:bitstrings] = collect(bitstrings)[1:num_outputs]
+
+    elseif output_method == :uniform
+        output_params[:num_qubits] = tnc.qubits
+        output_params[:num_samples] = num_outputs === nothing ? 10 : num_outputs
+        output_params[:seed] = seed
+    end
+    output_args[:params] = output_params
+    generate_parameter_file(output_prefix, bond_groups_to_slice, output_args)
 
     @info("Prepare DSL and data files")
     generate_dsl_files(tnc, output_prefix, plan, bond_groups_to_slice; force=true, metadata=metadata)

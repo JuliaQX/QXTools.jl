@@ -10,28 +10,43 @@ include("../bin/prepare_rqc_simulation_files.jl")
     # create empty temporary directory
     mktempdir() do path
         prefix = joinpath(path, "rqc_3_3_8")
-        args = ["-p", prefix, "--time", "30", "-a", "15"]
+        args = ["-p", prefix, "--time", "30", "-n", "15"]
         Logging.with_logger(Logging.NullLogger()) do # suppress logging
             main(args)
         end
         @test all([isfile(prefix * suffix) for suffix in [".qx", ".jld2", ".yml"]])
 
         params = YAML.load_file(prefix * ".yml")
-        @test length(params["amplitudes"]) == 15
+        @test length(params["output"]["params"]["bitstrings"]) == 15
     end
 
     # create empty temporary directory
     mktempdir() do path
         prefix = joinpath(path, "rqc_3_3_8")
         N = 20
-        args = ["-p", prefix, "-a", "$N", "--time", "30"]
+        args = ["-p", prefix, "-n", "$N", "--time", "30", "--output_method", "rejection"]
         Logging.with_logger(Logging.NullLogger()) do # suppress logging
             main(args)
         end
         @test all([isfile(prefix * suffix) for suffix in [".qx", ".jld2", ".yml"]])
 
         params = YAML.load_file(prefix * ".yml")
-        @test length(params["amplitudes"]) <= N
+        @test params["output"]["method"] == "rejection"
+        @test params["output"]["params"]["num_samples"] == N
+    end
+
+    # create empty temporary directory
+    mktempdir() do path
+        prefix = joinpath(path, "rqc_3_3_8")
+        N = 20
+        args = ["-p", prefix, "-n", "$N", "--time", "30"]
+        Logging.with_logger(Logging.NullLogger()) do # suppress logging
+            main(args)
+        end
+        @test all([isfile(prefix * suffix) for suffix in [".qx", ".jld2", ".yml"]])
+
+        params = YAML.load_file(prefix * ".yml")
+        @test length(params["output"]["params"]["bitstrings"]) <= N
     end
 end
 end

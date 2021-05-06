@@ -282,6 +282,7 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
     # otherwise use the min fill heuristic to find an elimination order.
     if haskey(td, :treewidth)
         order = Symbol.(qxg.order_from_tree_decomposition(td))
+        tw = td[:treewidth]
         method_used = "flow cutter"
     else
         tw, order = qxg.min_fill(lg)
@@ -291,6 +292,7 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
     # Create a dictionary for metadata regarding the contraction plan.
     contraction_metadata = OrderedDict{String, Any}()
     contraction_metadata["Method used"] = method_used
+    contraction_metadata["Treewidth"] = tw
     contraction_metadata["Time allocated"] = time
     contraction_metadata["Seed used"] = seed
     contraction_metadata["Returned metadata"] = flow_cutter_metadata
