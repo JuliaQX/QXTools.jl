@@ -42,7 +42,7 @@ function parse_commandline(ARGS)
             default = :direct_treewidth
             arg_type = Symbol
         "--output_method"
-            help = "Method for selecting amplitudes to output. (:uniform, :rejection, :list)"
+            help = "Method for selecting amplitudes to output. (uniform, rejection, list)"
             default = :list
             arg_type = Symbol
         "--num_outputs", "-n"

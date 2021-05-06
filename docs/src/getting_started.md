@@ -26,7 +26,7 @@ circ = create_ghz_circuit(3)
 tnc = convert_to_tnc(circ)
 
 # Find a good contraction plan
-plan = quickbb_contraction_plan(tnc)
+plan = flow_cutter_contraction_plan(tnc; time=10)
 
 # Contract the network using this plan to find the given amplitude for different outputs
 @show QXTools.single_amplitude(tnc, plan, "000")
@@ -45,7 +45,11 @@ using QXTools.Circuits
 # Create ghz circuit
 circ = create_ghz_circuit(3)
 
-generate_simulation_files(circ, 2, "ghz_3", 4)
+generate_simulation_files(circ; 
+                          number_bonds_to_slice=2, 
+                          output_prefix="ghz_3",
+                          output_method=:uniform
+                          num_outputs=4)
 ```
 
 will generate the files:

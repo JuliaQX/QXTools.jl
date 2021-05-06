@@ -75,11 +75,12 @@ An example of the DSL generated for the contraction of a two qubit GHZ circuit l
 # version: 0.3.0
 # Determination of contraction plan :
 #   Method used : flow cutter
-#   Time allocated : 10
+#   Treewidth : 2
+#   Time allocated : 30
 #   Seed used : -1
 #   Returned metadata :
 #     1 : c min degree heuristic
-#     2 : c status 3 1618911763948
+#     2 : c status 3 1620299104065
 #     3 : c min shortcut heuristic
 #     4 : c run with 0.0/0.1/0.2 min balance and node_min_expansion in endless loop with varying seed
 #   Hypergraph used : true
@@ -95,17 +96,17 @@ load t2 data_2
 load t3 data_3
 load t4 data_4
 load t5 data_4
-view o1_s o1 1 v1
-view t3_s t3 1 v1
 view t2_s t2 3 v1
+view t3_s t3 1 v1
 view t1_s t1 1 v1
+view o1_s o1 1 v1
 view t5_s t5 1 v2
 view t2_s_s t2_s 2 v2
-ncon I1 2,3 t2_s_s 1,2,3 o2 1
-ncon I2 1 t1_s 1,2 t4 2
-ncon t8 1 o1_s 1 t3_s 1
+ncon t8 2 t3_s 2 o1_s 2
 ncon t9 1,3 t8 1 t5_s 3
+ncon I1 2,3 t2_s_s 1,2,3 o2 1
 ncon t10 1 t9 1,3 I1 3,1
+ncon I2 1 t1_s 1,2 t4 2
 ncon t11 0 t10 1 I2 1
 save t11 output
 ```
