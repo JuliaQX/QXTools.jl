@@ -83,7 +83,6 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
 
     dsl_filename = "$(prefix).qx"
     data_filename = "$(prefix).jld2"
-    param_filename = "$(prefix).yml"
 
     @assert force || !isfile(dsl_filename) "Error $(dsl_filename) already exists"
     @assert force || !isfile(data_filename) "Error $(data_filename) already exists"
@@ -141,6 +140,7 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
         end
         contraction_tree = build_tree(contract_cmds)
         remove_repeated!(contraction_tree)
+        # permute_and_merge!(contraction_tree)
         write(dsl_io, contraction_tree)
 
         output_tensor = first(keys(tn_copy))
@@ -213,7 +213,7 @@ function gen_ncon_command(tn::TensorNetwork, A_sym::Symbol, B_sym::Symbol, C_sym
 
     update_all_index_map(join_edge_groups(hyperindices(tn[A_sym]), hyperindices(tn[B_sym])))
 
-    C_labels = length(C_indices) == 0 ? [] : unique(getindex.([all_index_map], C_indices))
+    C_labels = length(C_indices) == 0 ? Int[] : unique(getindex.([all_index_map], C_indices))
 
     # must update A_indices (and B_indices) so only have a single index for each hyper edge group of A (B)
     function update_indices(indices, hyper_index_groups)
@@ -227,8 +227,8 @@ function gen_ncon_command(tn::TensorNetwork, A_sym::Symbol, B_sym::Symbol, C_sym
         unique(indices)
     end
 
-    A_labels = length(A_indices) == 0 ? [] : getindex.([all_index_map], update_indices(A_indices, hyperindices(tn[A_sym])))
-    B_labels = length(B_indices) == 0 ? [] : getindex.([all_index_map], update_indices(B_indices, hyperindices(tn[B_sym])))
+    A_labels = length(A_indices) == 0 ? Int[] : getindex.([all_index_map], update_indices(A_indices, hyperindices(tn[A_sym])))
+    B_labels = length(B_indices) == 0 ? Int[] : getindex.([all_index_map], update_indices(B_indices, hyperindices(tn[B_sym])))
     ContractCommand(C_sym, C_labels, A_sym, A_labels, B_sym, B_labels)
 end
 
@@ -282,7 +282,6 @@ partitions:
 function generate_parameter_file(filename_prefix::String,
                                  sliced_bond_groups::Array{<:Array{<:Index, 1}, 1},
                                  output_parameters)
-    
     partition_dims = OrderedDict{String, Int64}()
     for (i, sliced_bond_group) in enumerate(sliced_bond_groups)
         partition_dims["v$i"] = QXTns.dim(sliced_bond_group[1])
