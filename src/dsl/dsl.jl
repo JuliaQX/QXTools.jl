@@ -140,7 +140,8 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
         end
         contraction_tree = build_tree(contract_cmds)
         remove_repeated!(contraction_tree)
-        # permute_and_merge!(contraction_tree)
+        permute_and_merge!(contraction_tree)
+        join_remaining!(contraction_tree)
         write(dsl_io, contraction_tree)
 
         output_tensor = first(keys(tn_copy))

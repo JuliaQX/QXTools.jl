@@ -108,3 +108,74 @@ end
     cmd = String(take!(io))
     @test cmd == "view t1v1 t1 2 v1\n"
 end
+
+@testset "Test _permute_and_merge" begin
+    # simple case where all independent and merging two sets of two
+    cmd = QXTools.ContractCommand("ncon c 3,4,2,1 b 8,9,3,4 c 8,9,2,1")
+    cmd.reshape_groups[:] = [1,1,1,1]
+    new_index_order = [[1,2], [3,4]]
+    QXTools._permute_and_merge!(cmd, new_index_order)
+    @test cmd.reshape_groups == [2,2]
+
+    # one set already merged and leaving them as they are
+    cmd = QXTools.ContractCommand("ncon c 3,4,2,1 b 8,9,3,4 c 8,9,2,1")
+    empty!(cmd.reshape_groups); append!(cmd.reshape_groups, [2,1,1])
+    new_index_order = [[1], [2], [3]]
+    QXTools._permute_and_merge!(cmd, new_index_order)
+    @test cmd.reshape_groups == [2, 1, 1]
+
+    # one set already merged and merging the remaining two
+    cmd = QXTools.ContractCommand("ncon c 3,4,2,1 b 8,9,3,4 c 8,9,2,1")
+    empty!(cmd.reshape_groups); append!(cmd.reshape_groups, [2,1,1])
+    new_index_order = [[1], [3, 2]]
+    QXTools._permute_and_merge!(cmd, new_index_order)
+    @test cmd.reshape_groups == [2, 2]
+
+    # merging the existing group with one other
+    cmd = QXTools.ContractCommand("ncon c 3,4,2,1 b 8,9,3,4 c 8,9,2,1")
+    empty!(cmd.reshape_groups); append!(cmd.reshape_groups, [2,1,1])
+    new_index_order = [[1, 3], [2]]
+    QXTools._permute_and_merge!(cmd, new_index_order)
+    @test cmd.reshape_groups == [3, 1]
+
+    # merging the existing group with other two
+    cmd = QXTools.ContractCommand("ncon c 3,4,2,1 b 8,9,3,4 c 8,9,2,1")
+    empty!(cmd.reshape_groups); append!(cmd.reshape_groups, [2,1,1])
+    new_index_order = [[1, 3, 2]]
+    QXTools._permute_and_merge!(cmd, new_index_order)
+    @test cmd.reshape_groups == [4]
+end
+
+@testset "Test find overlaps" begin
+    # cases with single output group
+    @test QXTools.find_overlaps([1,2,3], [2,3,4]) == [[2,3]]
+    @test QXTools.find_overlaps([1,2,3], [1,3]) == [[1],[3]]
+    @test QXTools.find_overlaps([1,2,3,4], [1,3,4]) == [[1],[3,4]]
+
+    # case with more than one output group
+    @test QXTools.find_overlaps([[1,2],[3],[4,5]], [1,2,3,4,5]) == [[1,2], [3], [4,5]]
+    @test QXTools.find_overlaps([[1,2],[3],[4,5]], [1,2,4,5]) == [[1,2], [4,5]]
+    @test QXTools.find_overlaps([[5,4],[3],[1,2]], [1,2,8,4,5]) == [[1,2],[4],[5]]
+
+    # corner cases with empty arrays
+    @test QXTools.find_overlaps([[5,4],[3],[1,2]], Int[]) == Vector{Vector{Int}}()
+end
+
+@testset "Test join output idxs function" begin
+    cmd = QXTools.ContractCommand("ncon c 3,4,2,1 b 8,9,3,4 c 8,9,2,1")
+    empty!(cmd.reshape_groups); append!(cmd.reshape_groups, [2,1,1])
+    QXTools.join_output_idxs!(cmd, [[3,4]])
+    @test cmd.output_idxs == [3,2,1] && cmd.reshape_groups == [1,1,1]
+
+    cmd = QXTools.ContractCommand("ncon c 3,4,2,1,6,7,8 b 8,9,3,4,2 c 8,9,2,1")
+    empty!(cmd.reshape_groups); append!(cmd.reshape_groups, [7])
+    QXTools.join_output_idxs!(cmd, [[3,4,2]])
+    @test cmd.output_idxs == [3,1,6,7,8] && cmd.reshape_groups == [5]
+end
+
+@testset "Test remove repeated in output" begin
+    cmd = QXTools.ContractCommand("ncon c 3,4,2,1 b 0 c 0")
+    QXTools._remove_repeated_in_output!(cmd, [1,2,3,1])
+    @test cmd.output_idxs == [3,4,2]
+    @test cmd.reshape_groups == [1,1,1]
+end

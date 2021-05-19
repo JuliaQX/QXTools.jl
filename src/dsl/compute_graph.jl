@@ -35,7 +35,7 @@ end
 ## functions and data structures for trees of contraction commands
 
 """Structure to represent a contraction command"""
-struct ContractCommand
+mutable struct ContractCommand
     output_name::Symbol
     output_idxs::Vector{Int}
     left_name::Symbol
@@ -71,7 +71,14 @@ function Base.write(io::IO, cmd::ContractCommand)
     j = x -> length(x) == 0 ? "0" : join(x, ",")
     write(io, "ncon $(cmd.output_name) $(j(cmd.output_idxs)) $(cmd.left_name) $(j(cmd.left_idxs)) $(cmd.right_name) $(j(cmd.right_idxs))\n")
     if length(cmd.reshape_groups) < length(cmd.output_idxs)
-        write(io, "reshape $(cmd.output_name) $(j(cmd.reshape_groups))\n")
+        groups = Vector{Vector{Int}}()
+        pos = 1
+        for j in cmd.reshape_groups
+            push!(groups, collect(pos:pos+j-1))
+            pos += j
+        end
+        groups_str = join(map(x -> join(x, ","), groups), ";")
+        write(io, "reshape $(cmd.output_name) $(groups_str)\n")
     end
 end
 
@@ -150,7 +157,7 @@ end
 
 function _remove_repeated_in_output!(cmd::ContractCommand, indices::Vector{Int64})
     # first we create a map of all indices and start with them mapping to themselves
-    all_idx = Set([cmd.output_idxs..., cmd.left_idxs..., cmd.right_idxs...])
+    all_idx = union(cmd.output_idxs, cmd.left_idxs, cmd.right_idxs)
     all_idx_map = Dict(x => x for x in all_idx)
 
     # go through indices and update index map with first occurence
@@ -165,7 +172,7 @@ function _remove_repeated_in_output!(cmd::ContractCommand, indices::Vector{Int64
 
     # we can now remove duplicate indices from output_idxs and also update reshape indices to be consistent
     # find positions of values that will be remoeved
-    remove_positions = findall(x -> all_idx_map[x] == x, cmd.output_idxs)
+    remove_positions = findall(x -> all_idx_map[x] != x, cmd.output_idxs)
     # remove repeated indices in output_indices
     filter!(x -> all_idx_map[x] == x, cmd.output_idxs)
     cmd.reshape_groups = _remove_positions_in_reshape(remove_positions, cmd.reshape_groups)
@@ -209,11 +216,11 @@ function remove_repeated!(node::ComputeNode{ContractCommand}, indices=nothing)
     if is_hyper(node.data.left_idxs) && isdefined(node, :left)
         remove_repeated!(node.left, node.data.left_idxs)
         unique!(node.data.left_idxs)
-    end
+    elseif isdefined(node, :left) remove_repeated!(node.left) end
     if is_hyper(node.data.right_idxs) && isdefined(node, :right)
         remove_repeated!(node.right, node.data.right_idxs)
         unique!(node.data.right_idxs)
-    end
+    elseif isdefined(node, :right) remove_repeated!(node.right) end
 end
 
 """
@@ -253,7 +260,12 @@ function permute_and_merge!(node::ComputeNode{ContractCommand}, new_index_order=
     # identify batched, common and remaining indices
     batch_idxs = batched_indices(node.data) # these go at the end
     common_idxs = setdiff(intersect(node.data.left_idxs, node.data.right_idxs), batch_idxs) # these go at the start in order appear in left
-    common_idxs = filter(x -> x in common_idxs, node.data.left_idxs) # ensure it's ordered by left idxs
+    # we choose to order by the highest rank child
+    if length(node.data.right_idxs) > length(node.data.left_idxs)
+        common_idxs = filter(x -> x in common_idxs, node.data.right_idxs) # ensure it's ordered by right idxs
+    else
+        common_idxs = filter(x -> x in common_idxs, node.data.left_idxs) # ensure it's ordered by left idxs
+    end
     remaining_idxs = setdiff(union(node.data.left_idxs, node.data.right_idxs), union(common_idxs, batch_idxs)) # these go in the middle
     remaining_idxs = filter(x -> x in remaining_idxs, node.data.output_idxs) # reorder by output
 
@@ -265,6 +277,7 @@ function permute_and_merge!(node::ComputeNode{ContractCommand}, new_index_order=
         new_index_order = length(common_idxs) == 0 ? Vector{Vector{Int}}() : [m(common_idxs)]
         append!(new_index_order, [map(x -> [x], m(left_remaining_idxs))..., map(x -> [x], m(batch_idxs))...])
         # append!(new_index_order, [m.(left_remaining_idx_groups)..., map(x -> [x], m(batch_idxs))...])
+        # @show left_remaining_idxs, remaining_idxs
         permute_and_merge!(node.left, new_index_order)
         new_left_idxs = length(common_idxs) > 0 ? [common_idxs[1]] : Int[]
         append!(new_left_idxs, [left_remaining_idxs..., batch_idxs...])
@@ -285,12 +298,107 @@ function permute_and_merge!(node::ComputeNode{ContractCommand}, new_index_order=
         empty!(node.data.right_idxs)
         append!(node.data.right_idxs, new_right_idxs)
     end
+    nothing
 end
 
 batched_indices(cmd) = intersect(cmd.output_idxs, cmd.left_idxs, cmd.right_idxs)
 
 function _permute_and_merge!(cmd::ContractCommand, new_index_order)
-    @show "Updating $(cmd.output_name) with $new_index_order"
+    if new_index_order !== nothing
+        # get mapping between indices as seen by next command, ordered 1,2..n where n is rank
+        # and grouped according to reshape_groups
+        current_idxs = Dict{Int, Vector{Int}}()
+        pos = 1
+        for (i, group_size) in enumerate(cmd.reshape_groups)
+            current_idxs[i] = cmd.output_idxs[pos:pos+group_size-1]
+            pos += group_size
+        end
+        flat_order = vcat(new_index_order...)
+        # @show cmd.output_name, new_index_order
+        # @show cmd.output_idxs, vcat(map(x -> current_idxs[x], flat_order)...)
+        cmd.output_idxs[:] = vcat(map(x -> current_idxs[x], flat_order)...)
+        # update reshape groups to reflect any new merges
+        new_reshape_groups = []
+        pos = 1
+        for l in length.(new_index_order)
+            push!(new_reshape_groups, sum(cmd.reshape_groups[pos:pos+l-1]))
+            pos += l
+        end
+        empty!(cmd.reshape_groups)
+        append!(cmd.reshape_groups, new_reshape_groups)
+    end
+end
+
+"""
+    join_remaining!(node::ComputeNode{ContractCommand}, new_index_order=nothing)
+
+Identify groups of indices that are grouped in the output indices and also appear in the same
+order in the left and right index groups. Merge these in left and right index groups and pass
+this grouping to children
+
+Example:
+
+"""
+function join_remaining!(node::ComputeNode{ContractCommand}, new_index_order=nothing)
+    _join_remaining!(node.data, new_index_order)
+
+    # find output indices that are merged in the reshape after the contraction
+    pos = 1
+    output_groups = Vector{Vector{Int}}()
+    for j in node.data.reshape_groups
+        push!(output_groups, node.data.output_idxs[pos:pos+j-1])
+        pos += j
+    end
+
+    # identify batched, common and remaining indices
+    batch_idxs = batched_indices(node.data) # these go at the end
+    common_idxs = setdiff(intersect(node.data.left_idxs, node.data.right_idxs), batch_idxs) # these go at the start in order appear in left
+    common_idxs = filter(x -> x in common_idxs, node.data.left_idxs) # ensure it's ordered by left idxs
+    remaining_idxs = setdiff(union(node.data.left_idxs, node.data.right_idxs), union(common_idxs, batch_idxs)) # these go in the middle
+    remaining_idxs = filter(x -> x in remaining_idxs, node.data.output_idxs) # reorder by output
+
+    if isdefined(node, :left)
+        l_index_map = Dict(x => i for (i, x) in enumerate(node.data.left_idxs))
+        m = x -> [l_index_map[y] for y in x]
+        left_remaining_idxs = filter(x -> x in node.data.left_idxs, remaining_idxs)
+        left_remaining_idx_groups = find_overlaps(output_groups, left_remaining_idxs)
+
+        # we join these in the output idxs
+        join_output_idxs!(node.data, left_remaining_idx_groups)
+
+        # we replace each index with it's possition and then call join_remaing on node
+        new_index_order = length(common_idxs) == 0 ? Vector{Vector{Int}}() : [m(common_idxs)]
+        append!(new_index_order, [m.(left_remaining_idx_groups)..., map(x -> [x], m(batch_idxs))...])
+        join_remaining!(node.left, new_index_order)
+
+        new_left_idxs = length(common_idxs) > 0 ? [common_idxs[1]] : Int[]
+        append!(new_left_idxs, [map(x -> x[1], left_remaining_idx_groups)..., batch_idxs...])
+        empty!(node.data.left_idxs)
+        append!(node.data.left_idxs, new_left_idxs)
+    end
+    if isdefined(node, :right)
+        r_index_map = Dict(x => i for (i, x) in enumerate(node.data.right_idxs))
+        m = x -> [r_index_map[y] for y in x]
+        right_remaining_idxs = filter(x -> x in node.data.right_idxs, remaining_idxs)
+        right_remaining_idx_groups = find_overlaps(output_groups, right_remaining_idxs)
+
+        # we join these in the output idxs
+        join_output_idxs!(node.data, right_remaining_idx_groups)
+
+        # we replace each index with it's possition and then call join_remaing on node
+        new_index_order = length(common_idxs) == 0 ? Vector{Vector{Int}}() : [m(common_idxs)]
+        append!(new_index_order, [m.(right_remaining_idx_groups)..., map(x -> [x], m(batch_idxs))...])
+        join_remaining!(node.right, new_index_order)
+
+        new_right_idxs = length(common_idxs) > 0 ? [common_idxs[1]] : Int[]
+        append!(new_right_idxs, [map(x -> x[1], right_remaining_idx_groups)..., batch_idxs...])
+        empty!(node.data.right_idxs)
+        append!(node.data.right_idxs, new_right_idxs)
+    end
+    nothing
+end
+
+function _join_remaining!(cmd::ContractCommand, new_index_order)
     if new_index_order !== nothing
         # get mapping between indices as seen by next command, ordered 1,2..n where n is rank
         # and grouped according to reshape_groups
@@ -314,20 +422,68 @@ function _permute_and_merge!(cmd::ContractCommand, new_index_order)
     end
 end
 
+
 function find_overlaps(array::Vector{T}, sub_array::Vector{T}) where T
     sub_pos = 1
     groups = Vector{Vector{T}}()
     while sub_pos <= length(sub_array)
         pos = findfirst(x -> x == sub_array[sub_pos], array)
-        i = 1
-        while pos + i <= length(array) &&
-              sub_pos + i <= length(sub_array) &&
-              array[pos+i] == sub_array[sub_pos+i]
-            i += 1
-        end
-        push!(groups, sub_array[sub_pos:sub_pos+i-1])
-        pos += i
+        if pos !== nothing
+            i = 1
+            while pos + i <= length(array) &&
+                sub_pos + i <= length(sub_array) &&
+                array[pos+i] == sub_array[sub_pos+i]
+                i += 1
+            end
+            push!(groups, sub_array[sub_pos:sub_pos+i-1])
+        else i = 1 end
         sub_pos += i
     end
     groups
+end
+
+function find_overlaps(arrays::Vector{<: Vector{T}}, sub_array::Vector{T}) where T
+    sub_pos = 1
+    groups = Vector{Vector{T}}()
+    while sub_pos <= length(sub_array)
+        array_pos = findfirst(x -> sub_array[sub_pos] in x, arrays)
+        if array_pos !== nothing
+            array = arrays[array_pos]
+            pos = findfirst(x -> x == sub_array[sub_pos], array)
+            i = 1
+            while pos + i <= length(array) &&
+                sub_pos + i <= length(sub_array) &&
+                array[pos+i] == sub_array[sub_pos+i]
+                i += 1
+            end
+            push!(groups, sub_array[sub_pos:sub_pos+i-1])
+        else i = 1 end
+        sub_pos += i
+    end
+    groups
+end
+
+function join_output_idxs!(cmd, groups)
+    pos = 1
+    output_groups = Vector{Vector{Int}}()
+    for j in cmd.reshape_groups
+        push!(output_groups, cmd.output_idxs[pos:pos+j-1])
+        pos += j
+    end
+
+    for group in groups
+        if length(group) > 1
+            # find relevant output group
+            output_group_idx = findfirst(x -> length(intersect(x, group)) > 0, output_groups)
+            # replace indices in this group with first element
+            output_group = output_groups[output_group_idx]
+            pos = findfirst(x -> x == group[1], output_group)
+            for i in 1:length(group)-1 popat!(output_group, pos+1) end
+        end
+    end
+
+    empty!(cmd.output_idxs)
+    append!(cmd.output_idxs, vcat(output_groups...))
+    empty!(cmd.reshape_groups)
+    append!(cmd.reshape_groups, length.(output_groups))
 end
