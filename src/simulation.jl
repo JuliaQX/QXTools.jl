@@ -109,21 +109,18 @@ relations. Involves recurisively checking bonds connected to neighbouring tensor
 related edges found. Returns an array in all edges in the group including the intial edge.
 """
 function _find_hyper_edges(tn::TensorNetwork, bond::Index)
-    visited_tensors = Set{Symbol}()
     tensors_to_visit = Set{Symbol}()
     push!.([tensors_to_visit], tn[bond])
     related_edges = Set{Index}([bond])
     while length(tensors_to_visit) > 0
         tensor_sym = pop!(tensors_to_visit)
-        push!(visited_tensors, tensor_sym)
         for g in hyperindices(tn[tensor_sym])
             if length(intersect(related_edges, g)) > 0
-                for e in setdiff(union(related_edges, g), intersect(related_edges, g))
+                new_edges = setdiff(g, related_edges)
+                for e in new_edges
                     push!(related_edges, e)
                     for t in tn[e]
-                        if !(t in visited_tensors)
-                            push!(tensors_to_visit, t)
-                        end
+                        push!(tensors_to_visit, t)
                     end
                 end
             end

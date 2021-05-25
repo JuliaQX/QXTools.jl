@@ -34,53 +34,6 @@ end
 
 ## functions and data structures for trees of contraction commands
 
-"""Structure to represent a contraction command"""
-mutable struct ContractCommand
-    output_name::Symbol
-    output_idxs::Vector{Int}
-    left_name::Symbol
-    left_idxs::Vector{Int}
-    right_name::Symbol
-    right_idxs::Vector{Int}
-    reshape_groups::Vector{Int}
-    function ContractCommand(output_name::Symbol,
-                             output_idxs::Vector{Int},
-                             left_name::Symbol,
-                             left_idxs::Vector{Int},
-                             right_name::Symbol,
-                             right_idxs::Vector{Int})
-        new(output_name, output_idxs, left_name, left_idxs, right_name, right_idxs, ones(Int, length(output_idxs)))
-    end
-end
-
-function ContractCommand(cmd::AbstractString)
-    @assert match(r"^ncon", cmd) !== nothing "Command must begin with \"ncon\""
-    p = split(cmd, " ")[2:end]
-    s = x -> Symbol(x)
-    l = x -> x == "0" ? Int[] : map(y -> parse(Int, y), split(x, ","))
-    ContractCommand(s(p[1]), l(p[2]), s(p[3]), l(p[4]), s(p[5]), l(p[6]))
-end
-
-
-"""
-    Base.write(io::IO, cmd::ContractCommand)
-
-Function to serialise command to the given IO stream
-"""
-function Base.write(io::IO, cmd::ContractCommand)
-    j = x -> length(x) == 0 ? "0" : join(x, ",")
-    write(io, "ncon $(cmd.output_name) $(j(cmd.output_idxs)) $(cmd.left_name) $(j(cmd.left_idxs)) $(cmd.right_name) $(j(cmd.right_idxs))\n")
-    if length(cmd.reshape_groups) < length(cmd.output_idxs)
-        groups = Vector{Vector{Int}}()
-        pos = 1
-        for j in cmd.reshape_groups
-            push!(groups, collect(pos:pos+j-1))
-            pos += j
-        end
-        groups_str = join(map(x -> join(x, ","), groups), ";")
-        write(io, "reshape $(cmd.output_name) $(groups_str)\n")
-    end
-end
 
 """
     Base.write(io::IO, tree::tree::ComputeNode{ContractCommand})
@@ -212,15 +165,14 @@ function remove_repeated!(node::ComputeNode{ContractCommand}, indices=nothing)
     if indices !== nothing
         _remove_repeated_in_output!(node.data, indices)
     end
-    is_hyper = x -> length(x) > length(Set(x))
-    if is_hyper(node.data.left_idxs) && isdefined(node, :left)
+    if isdefined(node, :left)
         remove_repeated!(node.left, node.data.left_idxs)
         unique!(node.data.left_idxs)
-    elseif isdefined(node, :left) remove_repeated!(node.left) end
-    if is_hyper(node.data.right_idxs) && isdefined(node, :right)
+    end
+    if isdefined(node, :right)
         remove_repeated!(node.right, node.data.right_idxs)
         unique!(node.data.right_idxs)
-    elseif isdefined(node, :right) remove_repeated!(node.right) end
+    end
 end
 
 """
@@ -422,26 +374,19 @@ function _join_remaining!(cmd::ContractCommand, new_index_order)
     end
 end
 
+"""
+    find_overlaps(arrays::Vector{<: Vector{T}}, sub_array::Vector{T}) where T
 
-function find_overlaps(array::Vector{T}, sub_array::Vector{T}) where T
-    sub_pos = 1
-    groups = Vector{Vector{T}}()
-    while sub_pos <= length(sub_array)
-        pos = findfirst(x -> x == sub_array[sub_pos], array)
-        if pos !== nothing
-            i = 1
-            while pos + i <= length(array) &&
-                sub_pos + i <= length(sub_array) &&
-                array[pos+i] == sub_array[sub_pos+i]
-                i += 1
-            end
-            push!(groups, sub_array[sub_pos:sub_pos+i-1])
-        else i = 1 end
-        sub_pos += i
-    end
-    groups
-end
+Given a set of arrays and a single sub array, this function will return subsets
+of the sub_array which appear in sequence next to each other
 
+Example:
+arrays: [[1,2,3], [8,9,12,14]]
+sub_array: [1,2,9,12,13,14]
+
+should return
+[[1,2],[9,12],[14]]
+"""
 function find_overlaps(arrays::Vector{<: Vector{T}}, sub_array::Vector{T}) where T
     sub_pos = 1
     groups = Vector{Vector{T}}()
@@ -463,13 +408,43 @@ function find_overlaps(arrays::Vector{<: Vector{T}}, sub_array::Vector{T}) where
     groups
 end
 
-function join_output_idxs!(cmd, groups)
+"""
+    group_elements(group_sizes::Vector{Int}, elements::Vector)
+
+Function to group elements in a vector according to given group sizes
+"""
+function group_elements(group_sizes::Vector{Int}, elements::Vector)
     pos = 1
-    output_groups = Vector{Vector{Int}}()
-    for j in cmd.reshape_groups
-        push!(output_groups, cmd.output_idxs[pos:pos+j-1])
+    @assert sum(group_sizes) == length(elements) "Sum of group sizes should match vector length"
+    groups = Vector{Vector{eltype(elements)}}()
+    for j in group_sizes
+        push!(groups, elements[pos:pos+j-1])
         pos += j
     end
+    groups
+end
+
+
+"""
+    join_output_idxs!(cmd::ContractCommand, groups)
+
+Given a list of groups of indices we can replace these groups in the output
+index set with the first index in each group. We also update the reshape
+groups to take this into account
+
+Example:
+--------
+output_idxs: 4,5,2,1
+reshape_groups: 3,1
+groups: [[4,5],[2],[1]]
+
+expected output:
+----------------
+output_idxs: 4,2,1
+reshape_groups: 2,1
+"""
+function join_output_idxs!(cmd::ContractCommand, groups)
+    output_groups = group_elements(cmd.reshape_groups, cmd.output_idxs)
 
     for group in groups
         if length(group) > 1
@@ -478,7 +453,7 @@ function join_output_idxs!(cmd, groups)
             # replace indices in this group with first element
             output_group = output_groups[output_group_idx]
             pos = findfirst(x -> x == group[1], output_group)
-            for i in 1:length(group)-1 popat!(output_group, pos+1) end
+            for _ in 1:length(group)-1 popat!(output_group, pos+1) end
         end
     end
 

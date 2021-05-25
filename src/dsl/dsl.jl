@@ -1,4 +1,5 @@
 include("tensor_cache.jl")
+include("cmds.jl")
 include("compute_graph.jl")
 
 using YAML
@@ -6,7 +7,7 @@ using JLD2
 using Random
 using QXTns
 
-const DSL_VERSION = VersionNumber("0.3")
+const DSL_VERSION = VersionNumber("0.4")
 
 export generate_dsl_files, generate_parameter_file
 
@@ -59,8 +60,6 @@ function write_dsl_load_header(tnc::TensorNetworkCircuit, dsl_io::IO, data_io::J
     end
     # save tensor data labels
     save_cache(tc, data_io)
-    write(data_io, "output_0", [1., 0.])
-    write(data_io, "output_1", [0., 1.])
 end
 
 """
