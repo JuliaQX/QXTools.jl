@@ -50,8 +50,8 @@ end
 end
 
 @testset "Test write ncon command" begin
-    # test case where 2 tensors share one edges which
-    # is in the hyper edges of both tensors
+    # test case where 2 tensors share one edge which
+    # is in the hyper edge group for both tensors
     io = IOBuffer()
     tn = TensorNetwork()
     as = [Index(2), Index(2), Index(2)]
@@ -74,7 +74,7 @@ end
     t2 = push!(tn, QXTensor(bs, b_hyper_indices))
     write(io, QXTools.gen_ncon_command(tn, t1, t2, :t3))
     cmd = String(take!(io))
-    @test cmd == "ncon t3 0 t1 1 t2 1,1\n"
+    @test cmd == "ncon t3 0 t1 1 t2 1\n"
 
     # Test case where A has two sets of hyper indices
     # linked by a hyper index set in B
@@ -92,7 +92,7 @@ end
 
     io = IOBuffer()
     write(io, QXTools.gen_ncon_command(tn, :t1, :t2, :t3))
-    @test String(take!(io)) == "ncon t3 1,3,5,2,9,10 t1 1,2,3,5,2,9 t2 2,10\n"
+    @test String(take!(io)) == "ncon t3 1,2,3,4,5,6 t1 1,2,3,4,5 t2 2,6\n"
 end
 
 @testset "Test write view command" begin
@@ -103,7 +103,7 @@ end
     a_hyper_indices = [[2, 3]]
     t1 = push!(tn, QXTensor(as, a_hyper_indices))
 
-    QXTools.write_view_command(io, tn, t1, :t1v1, as[2], "v1")
+    QXTools.write_view_command(io, tn, t1, :t1v1, [as[2]], "v1")
 
     cmd = String(take!(io))
     @test cmd == "view t1v1 t1 2 v1\n"

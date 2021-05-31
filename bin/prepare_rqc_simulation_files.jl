@@ -43,7 +43,7 @@ function parse_commandline(ARGS)
             arg_type = Symbol
         "--output_method"
             help = "Method for selecting amplitudes to output. (uniform, rejection, list)"
-            default = :list
+            default = :List
             arg_type = Symbol
         "--num_outputs", "-n"
             help = "Number of amplitudes or bitstring samples to output"

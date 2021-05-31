@@ -10,7 +10,7 @@ include("../bin/prepare_rqc_simulation_files.jl")
     # create empty temporary directory
     mktempdir() do path
         prefix = joinpath(path, "rqc_3_3_8")
-        args = ["-p", prefix, "--time", "30", "-n", "15"]
+        args = ["-p", prefix, "--time", "10", "-n", "15"]
         Logging.with_logger(Logging.NullLogger()) do # suppress logging
             main(args)
         end

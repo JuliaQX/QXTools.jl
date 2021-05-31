@@ -79,7 +79,7 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
         output_params[:seed] = seed
         output_params[:num_samples] = num_outputs === nothing ? 10 : num_outputs
 
-    elseif output_method == :list
+    elseif output_method == :List
         if bitstrings === nothing
             bitstrings = amplitudes_all(qubits(tnc))
         end
@@ -102,34 +102,6 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
 end
 
 """
-    _find_hyper_edges(tn::TensorNetwork, bond::Index)
-
-Given a tensor network and a bond in the network, find all bonds that are related via hyper edge
-relations. Involves recurisively checking bonds connected to neighbouring tensors of any newly
-related edges found. Returns an array in all edges in the group including the intial edge.
-"""
-function _find_hyper_edges(tn::TensorNetwork, bond::Index)
-    tensors_to_visit = Set{Symbol}()
-    push!.([tensors_to_visit], tn[bond])
-    related_edges = Set{Index}([bond])
-    while length(tensors_to_visit) > 0
-        tensor_sym = pop!(tensors_to_visit)
-        for g in hyperindices(tn[tensor_sym])
-            if length(intersect(related_edges, g)) > 0
-                new_edges = setdiff(g, related_edges)
-                for e in new_edges
-                    push!(related_edges, e)
-                    for t in tn[e]
-                        push!(tensors_to_visit, t)
-                    end
-                end
-            end
-        end
-    end
-    collect(related_edges)
-end
-
-"""
     expand_slice_bonds_to_hyperindices(tn::TensorNetwork, bonds_to_slice::Array{<: Index, 1})
 
 Given a list of bonds to slice it is necessary to expand these to include bonds in the same hyper edge group. In
@@ -139,11 +111,11 @@ groups of hyper edges to slice.
 function expand_slice_bonds_to_hyperindices(tn::TensorNetwork, bonds_to_slice::Array{<: Index, 1})
     bond_groups = Array{Array{<:Index, 1}, 1}()
     if length(bonds_to_slice) > 0
-        push!(bond_groups, _find_hyper_edges(tn, bonds_to_slice[1]))
+        push!(bond_groups, find_connected_indices(tn, bonds_to_slice[1]))
         if length(bonds_to_slice) > 1
             for b in bonds_to_slice[2:end]
                 if !any([b in g for g in bond_groups])
-                    push!(bond_groups, _find_hyper_edges(tn, b))
+                    push!(bond_groups, find_connected_indices(tn, b))
                 end
             end
         end
@@ -207,5 +179,3 @@ function run_simulation(circ::QXZoo.Circuit.Circ;
     end
     results
 end
-
-

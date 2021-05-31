@@ -6,6 +6,7 @@ using YAML
 using JLD2
 using Random
 using QXTns
+using Infiltrator
 
 const DSL_VERSION = VersionNumber("0.4")
 
@@ -52,9 +53,9 @@ function write_dsl_load_header(tnc::TensorNetworkCircuit, dsl_io::IO, data_io::J
 
     # iterate over tensors and add to TensorCache
     write(dsl_io, "outputs $(qubits(tnc))\n")
-    for (tensor_symbol, tensor) in pairs(tnc)
+    for tensor_symbol in keys(tnc)
         if !(tensor_symbol in output_tensors(tnc))
-            data_symbol = push!(tc, tensor_data(tensor, consider_hyperindices=true))
+            data_symbol = push!(tc, tensor_data(tnc, tensor_symbol))
             write(dsl_io, "load $tensor_symbol $data_symbol\n")
         end
     end
@@ -105,11 +106,9 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
         # create views on tensors
         for (i, slice_bond_group) in enumerate(sliced_bond_groups)
             related_tensors = union([tn_copy[slice_bond] for slice_bond in slice_bond_group]...)
-            # slice_tensors = tn_copy[slice_bond]
             for tensor_sym in related_tensors
                 new_sym = Symbol("$(tensor_sym)_s")
-                tensor_bonds_in_group = intersect(QXTns.inds(tn_copy[tensor_sym]), slice_bond_group)
-                write_view_command(dsl_io, tn_copy, tensor_sym, new_sym, tensor_bonds_in_group[1], "v$(i)")
+                write_view_command(dsl_io, tn_copy, tensor_sym, new_sym, slice_bond_group, "v$(i)")
                 replace_tensor_symbol!(tn_copy, tensor_sym, new_sym)
                 changed_ids[tensor_sym] = new_sym
             end
@@ -138,9 +137,9 @@ function generate_dsl_files(tnc::TensorNetworkCircuit,
             end
         end
         contraction_tree = build_tree(contract_cmds)
-        remove_repeated!(contraction_tree)
-        permute_and_merge!(contraction_tree)
-        join_remaining!(contraction_tree)
+        # remove_repeated!(contraction_tree)
+        # permute_and_merge!(contraction_tree)
+        # join_remaining!(contraction_tree)
         write(dsl_io, contraction_tree)
 
         output_tensor = first(keys(tn_copy))
@@ -164,100 +163,20 @@ one of the tensors is rank 0 (a scalar) a '0' is used as a placeholder for the l
 
 """
 function gen_ncon_command(tn::TensorNetwork, A_sym::Symbol, B_sym::Symbol, C_sym::Symbol)
-    A_indices = copy(QXTns.inds(tn[A_sym]))
-    B_indices = copy(QXTns.inds(tn[B_sym]))
-    common_indices = intersect(A_indices, B_indices)
-    all_indices = union(A_indices, B_indices)
-    C_indices = setdiff(all_indices, common_indices)
-
-    # assign unique number to each index across all indices of both tensors
-    all_index_map = Dict{Index, Int64}((y => x for (x, y) in enumerate(all_indices)))
-
-    # update index map to map indices which belong to the same hyper index group
-    # to the same number
-    function update_all_index_map(hyper_index_groups)
-        for group in hyper_index_groups
-            if length(intersect(group, common_indices)) > 0
-                ref_index = sort(intersect(group, common_indices), by=x->all_index_map[x])[1]
-            else
-                ref_index = group[1]
-            end
-            ref_pos = all_index_map[ref_index]
-            for r in setdiff(group, ref_index)
-                all_index_map[r] = ref_pos
-            end
-        end
-    end
-
-    """Given two sets of groups of indices produce a set which combines these
-    merging any groups that have common indices"""
-    function join_edge_groups(a_groups, b_groups)
-        final_groups = Array{Index, 1}[]
-        remaining_groups = [a_groups..., b_groups...]
-        while length(remaining_groups) > 0
-            group = popat!(remaining_groups, 1)
-            to_delete = Array{Index, 1}[]
-            for other_group in remaining_groups
-                if length(intersect(group, other_group)) > 0
-                    group = union(group, other_group)
-                    push!(to_delete, other_group)
-                end
-            end
-            for g in to_delete
-                deleteat!(remaining_groups, findfirst(x -> x == g, remaining_groups))
-            end
-            push!(final_groups, group)
-        end
-        final_groups
-    end
-
-    update_all_index_map(join_edge_groups(hyperindices(tn[A_sym]), hyperindices(tn[B_sym])))
-
-    C_labels = length(C_indices) == 0 ? Int[] : unique(getindex.([all_index_map], C_indices))
-
-    # must update A_indices (and B_indices) so only have a single index for each hyper edge group of A (B)
-    function update_indices(indices, hyper_index_groups)
-        indices = copy(indices)
-        for group in hyper_index_groups
-            ref_index = sort(group, by=x -> all_index_map[x])[1]
-            for other in setdiff(group, ref_index)
-                replace!(indices, other => ref_index)
-            end
-        end
-        unique(indices)
-    end
-
-    A_labels = length(A_indices) == 0 ? Int[] : getindex.([all_index_map], update_indices(A_indices, hyperindices(tn[A_sym])))
-    B_labels = length(B_indices) == 0 ? Int[] : getindex.([all_index_map], update_indices(B_indices, hyperindices(tn[B_sym])))
-    ContractCommand(C_sym, C_labels, A_sym, A_labels, B_sym, B_labels)
+    r = contraction_indices(tn, A_sym, B_sym)
+    ContractCommand(C_sym, r.c_labels, A_sym, r.a_labels, B_sym, r.b_labels)
 end
 
 """
-    write_view_command(dsl_io::IO, tn::TensorNetwork, tensor_sym::Symbol, new_sym::Symbol, slice_bond::Index, bond_label::String)
+    write_view_command(dsl_io::IO, tn::TensorNetwork, tensor_sym::Symbol, new_sym::Symbol, slice_bonds::Vector{<:Index}, bond_label::String)
 
 Write command to create a view on an existing tensor to the dsl_io stream that is passed.
 """
-function write_view_command(dsl_io::IO, tn::TensorNetwork, tensor_sym::Symbol, new_sym::Symbol, slice_bond::Index, bond_label::String)
-    indices = QXTns.inds(tn[tensor_sym])
-    index_map = OrderedDict{Index, Int64}((y => x for (x, y) in enumerate(indices)))
-
-    for group in hyperindices(tn[tensor_sym])
-        @assert length(group) >= 2 "Expect all hyperindex groups to have 2 or more elements"
-        ref_index = index_map[group[1]]
-        for r in group[2:end]
-            index_map[r] = ref_index
-        end
-    end
-    index_pos = Dict{Int64, Int64}()
-    pos = 0
-    for v in values(index_map)
-        if !haskey(index_pos, v)
-            pos += 1
-            index_pos[v] = pos
-        end
-    end
-    position_of_index = index_pos[index_map[slice_bond]]
-    write(dsl_io, "view $new_sym $tensor_sym $position_of_index $bond_label\n")
+function write_view_command(dsl_io::IO, tn::TensorNetwork, tensor_sym::Symbol, new_sym::Symbol, slice_bonds::Vector{<:Index}, bond_label::String)
+    indices = hyperindices(tn, tensor_sym, all_indices=true)
+    # find which group overlaps with slice_bonds
+    index_position = findfirst(x -> length(intersect(slice_bonds, x)) > 0, indices)
+    write(dsl_io, "view $new_sym $tensor_sym $index_position $bond_label\n")
 end
 
 """

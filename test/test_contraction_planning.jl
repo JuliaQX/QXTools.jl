@@ -56,6 +56,7 @@ end
 
     # test contracting the network
     output = contract_tn!(tnc, plan)
+    output = reshape(output, prod(size(output)))
     ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
     @test all(output .≈ ref)
 
@@ -108,6 +109,7 @@ end
 
     # test contracting the network
     output = contract_tn!(tnc, plan)
+    output = reshape(output, prod(size(output)))
     ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
     @test all(output .≈ ref)
 
@@ -122,6 +124,7 @@ end
 
     # test contracting the network
     output = contract_tn!(tnc, plan)
+    output = reshape(output, prod(size(output)))
     ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
     @test all(output .≈ ref)
 end
@@ -137,6 +140,7 @@ end
 
     # test contracting the network
     output = contract_tn!(tnc, plan)
+    output = reshape(output, prod(size(output)))
     ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
     @test all(output .≈ ref)
 end
@@ -152,6 +156,7 @@ end
 
     # test contracting the network
     output = contract_tn!(tnc, plan)
+    output = reshape(output, prod(size(output)))
     ref = zeros(8); ref[[1,8]] .= 1/sqrt(2)
     @test all(output .≈ ref)
 end
