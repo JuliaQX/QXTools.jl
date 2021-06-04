@@ -1,3 +1,5 @@
+using Random
+
 export amplitudes_uniform, amplitudes_all
 export generate_simulation_files, run_simulation
 
@@ -58,15 +60,17 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ,
 
     @info("Get contraction plan and edges to slice using QXGraphDecompositions")
     fc_seed = (seed === nothing) ? -1 : seed # flow cutter seed expects -1 in place of nothing.
-    bonds_to_slice, plan, metadata = contraction_scheme(tnc.tn, number_bonds_to_slice;
-                                                        seed=fc_seed,
-                                                        kwargs...)
+    bond_groups, plan, metadata = contraction_scheme(tnc.tn, number_bonds_to_slice;
+                                                     seed=fc_seed,
+                                                     kwargs...)
 
-    if output_args === nothing output_args = output_params_dict(qubits(tnc)) end
-    generate_parameter_file(output_prefix, bonds_to_slice, output_args)
+    compute_tree = build_compute_tree(tnc, plan, bond_groups)
 
     @info("Prepare DSL and data files")
-    generate_dsl_files(tnc, output_prefix, plan, bonds_to_slice; force=true, metadata=metadata)
+    generate_dsl_files(compute_tree, output_prefix; force=true, metadata=metadata)
+
+    if output_args === nothing output_args = output_params_dict(qubits(tnc)) end
+    generate_parameter_file(output_prefix, output_args)
 end
 
 """
@@ -154,7 +158,7 @@ function output_params_dict(qubits::Int,
         output_params[:num_samples] = num_outputs
     elseif output_method == :List
         if bitstrings === nothing
-            bitstrings = amplitudes_uniform(qubits, seed, num_outputs)
+            bitstrings = collect(amplitudes_uniform(qubits, seed, num_outputs))
         else num_outputs = length(bitstrings) end
         output_params[:num_samples] = num_outputs
         output_params[:bitstrings] = bitstrings

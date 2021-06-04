@@ -2,63 +2,96 @@ using AbstractTrees
 
 using QXContexts
 
+export build_compute_tree
+
 """
-    build_tree(tn::TensorNetwork, plan::Vector{<:Tuple})
+build_compute_tree(tnc::TensorNetworkCircuit,
+                   plan::Vector{<:Tuple}),
+                   bond_groups::Union{Nothing, Vector{<:Vector{<:Index}}}=nothing)
 
 Function to build a compute tree from a tensor network and plan
 """
-function QXContexts.build_tree(tn::TensorNetwork, plan::Vector{<:Tuple})
-    tn = copy(tn)
-    cmd_map = Dict(x[3] => (x[1] => x[2]) for x in plan)
-    all_outputs = Set(keys(cmd_map))
-    all_inputs = vcat(collect.(values(cmd_map))...)
-    parentless = collect(setdiff(all_outputs, all_inputs))
-    # @assert length(parentless) == 1 "Plan leads to disconnected graph"
-    # if length(parentless) > 1
-        # for i = 1:length(parentless)-1
-            # cmd_map[]
-        # end
-    # end
-    tree_nodes = Dict{Symbol, ComputeNode}()
-    for sym in parentless
-        tree_nodes[sym] = _create_node(tn, cmd_map, sym)
+function build_compute_tree(tnc::TensorNetworkCircuit,
+                            plan::Vector{<:Tuple},
+                            bond_groups::Union{Nothing, Vector{<:Vector{<:Index}}}=nothing)
+    tnc = copy(tnc)
+    tn = tnc.tn
+    # create load and outputs nodes
+    nodes = Dict{Symbol, ComputeNode}()
+    tc = TensorCache()
+
+    # add a load node for each tensor
+    for t in keys(tnc)
+        data_symbol = push!(tc, tensor_data(tnc, t))
+        op = LoadCommand(t, data_symbol, collect(size(tnc[t])))
+        nodes[t] = ComputeNode{LoadCommand}(op)
     end
+
+    # overwrite tensors corresponding to output tensors with output comamnds
+    for (i, o) in enumerate(output_tensors(tnc))
+        op = OutputCommand(o, i, size(tnc[o])[1])
+        nodes[o] = ComputeNode{OutputCommand}(op)
+    end
+
+    changed_ids = Dict{Symbol, Symbol}()
+    # add view commands to slice tensors
+    if bond_groups !== nothing
+        for (i, bg) in enumerate(bond_groups)
+            related_tensors = union([tnc[b] for b in bg]...)
+            slice_sym = Symbol("v$(i)")
+            slice_dim = QXTns.dim(bg[1])
+            for t in related_tensors
+                new_sym = Symbol("$(t)_s")
+                indices = hyperindices(tnc, t, all_indices=true)
+                # find which group overlaps with slice_bonds
+                index_position = findfirst(x -> length(intersect(bg, x)) > 0, indices)
+                op = ViewCommand(new_sym, t, slice_sym, index_position, slice_dim)
+                replace_tensor_symbol!(tn, t, new_sym)
+                changed_ids[t] = new_sym
+                node = ComputeNode{ViewCommand}(op)
+                push!(node.children, nodes[t])
+                nodes[t].parent = node
+                nodes[new_sym] = node
+            end
+        end
+    end
+
+    # now add contraction nodes in
+    for c in plan
+        A_sym, B_sym, C_sym = c
+        while haskey(changed_ids, A_sym) A_sym = changed_ids[A_sym] end
+        while haskey(changed_ids, B_sym) B_sym = changed_ids[B_sym] end
+        r = contraction_indices(tn, A_sym, B_sym)
+        op = ContractCommand(C_sym, r.c_labels, A_sym, r.a_labels, B_sym, r.b_labels)
+        node = ComputeNode{ContractCommand}(op)
+        for s in [A_sym, B_sym]
+            nodes[s].parent = node
+            push!(node.children, nodes[s])
+        end
+        nodes[C_sym] = node
+        contract_pair!(tn, A_sym, B_sym, C_sym; mock=true)
+    end
+
+    parentless = collect(keys(filter(x -> !isdefined(x[2], :parent), nodes)))
     reduce(parentless[2:end], init=parentless[1]) do x, y
-        cmd = gen_ncon_command(tn, x, y, :dummy)
+        r = contraction_indices(tn, x, y)
+        op = ContractCommand(:dummy, r.c_labels, x, r.a_labels, y, r.b_labels)
+        # cmd = gen_ncon_command(tn, x, y, :dummy)
         sym = contract_pair!(tn, x, y, mock=true)
-        cmd.output_name = sym
-        node = ComputeNode{ContractCommand}(cmd)
-        tree_nodes[sym] = node
-        if haskey(tree_nodes, x)
-            node.left = tree_nodes[x]
-            node.left.parent = node
-            delete!(tree_nodes, x)
+        op.output_name = sym
+        node = ComputeNode{ContractCommand}(op)
+        nodes[sym] = node
+        for s in [x, y]
+            push!(node.children, nodes[s])
+            nodes[s].parent = node
         end
-        if haskey(tree_nodes, y)
-            node.right = tree_nodes[y]
-            node.right.parent = node
-            delete!(tree_nodes, y)
-        end
-        sym
+        sym # return sym to contract with next parentless node
     end
-    first(values(tree_nodes))
-end
-
-QXContexts.build_tree(tnc::TensorNetworkCircuit, plan::Vector{<:Tuple}) = build_tree(tnc.tn, plan)
-
-function _create_node(tn::TensorNetwork, cmd_map, output_sym)
-    inputs = cmd_map[output_sym]
-    node = ComputeNode{ContractCommand}()
-    if haskey(cmd_map, inputs[1])
-        node.left = _create_node(tn, cmd_map, inputs[1])
-        node.left.parent = node
-    end
-    if haskey(cmd_map, inputs[2])
-        node.right = _create_node(tn, cmd_map, inputs[2])
-        node.right.parent = node
-    end
-    cmd = gen_ncon_command(tn, inputs..., output_sym)
-    contract_pair!(tn, inputs..., output_sym, mock=true)
-    node.data = cmd
-    node
+    parentless = collect(keys(filter(x -> !isdefined(x[2], :parent), nodes)))
+    @assert length(parentless) == 1 "Only root node should have no parent"
+    root = parentless[1]
+    node = ComputeNode(SaveCommand(:output, root))
+    push!(node.children, nodes[root])
+    nodes[root].parent = node
+    ComputeTree(node, convert(Dict, tc))
 end
