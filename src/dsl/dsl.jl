@@ -1,12 +1,13 @@
 include("tensor_cache.jl")
 include("cmds.jl")
-include("compute_graph.jl")
+include("compute_tree.jl")
+include("tree_opt.jl")
+include("tree_stats.jl")
 
 using YAML
 using JLD2
 using Random
 using QXTns
-using Infiltrator
 
 const DSL_VERSION = VersionNumber("0.4")
 

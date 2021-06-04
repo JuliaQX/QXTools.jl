@@ -44,16 +44,12 @@ file with the parameters to use during the simulation.
 - `decompose::Bool=true`: set if two qubit gates should be decompoed when the circuit is converted to a tensor network.
 - `kwargs`: all other kwargs are passed to `contraction_scheme` when it is called.
 """
-function generate_simulation_files(circ::QXZoo.Circuit.Circ;
-                                   number_bonds_to_slice::Int=2,
-                                   decompose::Bool=true,
-                                   output_method::Symbol=:list,
+function generate_simulation_files(circ::QXZoo.Circuit.Circ,
                                    output_prefix::String="simulation_input",
+                                   number_bonds_to_slice::Int=2;
+                                   decompose::Bool=true,
                                    seed::Union{Int64, Nothing}=nothing,
-                                   num_outputs::Union{Int64, Nothing}=nothing,
-                                   M::Float64=0.0001,
-                                   fix_M::Bool=false,
-                                   bitstrings::Union{Vector{String}, Nothing}=nothing,
+                                   output_args::Union{OrderedDict, Nothing}=nothing,
                                    kwargs...)
 
     @info("Convert circuit to tensor network")
@@ -66,63 +62,12 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
                                                         seed=fc_seed,
                                                         kwargs...)
 
-    bond_groups_to_slice = expand_slice_bonds_to_hyperindices(tnc.tn, bonds_to_slice)
-
-    @info("Write parameter file for retrieving $num_outputs amplitudes")
-    output_args = OrderedDict()
-    output_args[:method] = output_method
-    output_params = OrderedDict()
-    if output_method == :rejection
-        output_params[:num_qubits] = tnc.qubits
-        output_params[:M] = M
-        output_params[:fix_M] = fix_M
-        output_params[:seed] = seed
-        output_params[:num_samples] = num_outputs === nothing ? 10 : num_outputs
-
-    elseif output_method == :List
-        if bitstrings === nothing
-            bitstrings = amplitudes_all(qubits(tnc))
-        end
-        if num_outputs === nothing
-            num_outputs = length(bitstrings)
-        end
-        output_params[:num_samples] = num_outputs
-        output_params[:bitstrings] = collect(bitstrings)[1:num_outputs]
-
-    elseif output_method == :uniform
-        output_params[:num_qubits] = tnc.qubits
-        output_params[:num_samples] = num_outputs === nothing ? 10 : num_outputs
-        output_params[:seed] = seed
-    end
-    output_args[:params] = output_params
-    generate_parameter_file(output_prefix, bond_groups_to_slice, output_args)
+    if output_args === nothing output_args = output_params_dict(qubits(tnc)) end
+    generate_parameter_file(output_prefix, bonds_to_slice, output_args)
 
     @info("Prepare DSL and data files")
-    generate_dsl_files(tnc, output_prefix, plan, bond_groups_to_slice; force=true, metadata=metadata)
+    generate_dsl_files(tnc, output_prefix, plan, bonds_to_slice; force=true, metadata=metadata)
 end
-
-"""
-    expand_slice_bonds_to_hyperindices(tn::TensorNetwork, bonds_to_slice::Array{<: Index, 1})
-
-Given a list of bonds to slice it is necessary to expand these to include bonds in the same hyper edge group. In
-this function for each of the bonds to slice we identify their hyper indices if any and return an array of
-groups of hyper edges to slice.
-"""
-function expand_slice_bonds_to_hyperindices(tn::TensorNetwork, bonds_to_slice::Array{<: Index, 1})
-    bond_groups = Array{Array{<:Index, 1}, 1}()
-    if length(bonds_to_slice) > 0
-        push!(bond_groups, find_connected_indices(tn, bonds_to_slice[1]))
-        if length(bonds_to_slice) > 1
-            for b in bonds_to_slice[2:end]
-                if !any([b in g for g in bond_groups])
-                    push!(bond_groups, find_connected_indices(tn, b))
-                end
-            end
-        end
-    end
-    bond_groups
-end
-
 
 """
     single_amplitude(tnc::TensorNetworkCircuit, plan::Array{<:Index, 1}, amplitude::Union{String, Nothing}=nothing)
@@ -178,4 +123,46 @@ function run_simulation(circ::QXZoo.Circuit.Circ;
         results[amplitude] = single_amplitude(tnc, plan, amplitude)
     end
     results
+end
+
+"""
+function output_params_dict(qubits::Int,
+                            num_outputs::Int64=10;
+                            output_method::Symbol=:List,
+                            seed::Union{Int64, Nothing}=nothing,
+                            M::Float64=0.0001,
+                            fix_M::Bool=false,
+                            bitstrings::Union{Vector{String}, Nothing}=nothing)
+
+Function to construct dictionary with appropriate paramters to describe sampling approach.
+"""
+function output_params_dict(qubits::Int,
+                            num_outputs::Int64=10;
+                            output_method::Symbol=:List,
+                            seed::Union{Int64, Nothing}=nothing,
+                            M::Float64=0.0001,
+                            fix_M::Bool=false,
+                            bitstrings::Union{Vector{String}, Nothing}=nothing)
+    output_args = OrderedDict()
+    output_args[:method] = output_method
+    output_params = OrderedDict()
+    if output_method == :Rejection
+        output_params[:num_qubits] = qubits
+        output_params[:M] = M
+        output_params[:fix_M] = fix_M
+        output_params[:seed] = seed
+        output_params[:num_samples] = num_outputs
+    elseif output_method == :List
+        if bitstrings === nothing
+            bitstrings = amplitudes_uniform(qubits, seed, num_outputs)
+        else num_outputs = length(bitstrings) end
+        output_params[:num_samples] = num_outputs
+        output_params[:bitstrings] = bitstrings
+    elseif output_method == :Uniform
+        output_params[:num_qubits] = qubits
+        output_params[:num_samples] = num_outputs
+        output_params[:seed] = seed
+    end
+    output_args[:params] = output_params
+    output_args
 end

@@ -1,4 +1,4 @@
-import QXGraphDecompositions; qxg = QXGraphDecompositions
+import QXGraphDecompositions as qxg
 import LightGraphs
 import QXTns
 
@@ -253,6 +253,28 @@ end
 # **************************************************************************************** #
 
 """
+    expand_slice_bonds_to_hyperindices(tn::TensorNetwork, bonds_to_slice::Vector{<: Index})
+
+Given a list of bonds to slice it is necessary to expand these to include bonds in the same hyper edge group. In
+this function for each of the bonds to slice we identify their hyper indices if any and return an array of
+groups of hyper edges to slice.
+"""
+function expand_slice_bonds_to_hyperindices(tn::QXTns.TensorNetwork, bonds_to_slice::Vector{<: Index})
+    bond_groups = Array{Array{<:Index, 1}, 1}()
+    if length(bonds_to_slice) > 0
+        push!(bond_groups, find_connected_indices(tn, bonds_to_slice[1]))
+        if length(bonds_to_slice) > 1
+            for b in bonds_to_slice[2:end]
+                if !any([b in g for g in bond_groups])
+                    push!(bond_groups, find_connected_indices(tn, b))
+                end
+            end
+        end
+    end
+    bond_groups
+end
+
+"""
     contraction_scheme(tn::TensorNetwork, num::Integer)
 
 Return an array of 'num' indices to slice in the tensor network 'tn' and a contraction plan
@@ -271,6 +293,7 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
                             seed::Integer=-1,
                             score_function::Symbol=:direct_treewidth,
                             hypergraph::Bool=true)
+
     # Create the line graph for the given tn.
     lg, symbol_map = convert_to_line_graph(tn; use_hyperedges=hypergraph)
 
@@ -338,12 +361,13 @@ function contraction_scheme(tn::TensorNetwork, num::Integer;
     else # in case there are no edges to slice ensure return array has correct type
         indices_to_slice = Index[]
     end
+    index_groups_to_slice = expand_slice_bonds_to_hyperindices(tn, indices_to_slice)
 
     metadata = OrderedDict{String, Any}()
     metadata["Determination of contraction plan"] = contraction_metadata
     metadata["Slicing"] = slicing_metadata
 
-    indices_to_slice, contraction_plan, metadata
+    index_groups_to_slice, contraction_plan, metadata
 end
 
 contraction_scheme(tnc::TensorNetworkCircuit, args...; kwargs...) = contraction_scheme(tnc.tn, args...; kwargs...)
@@ -530,4 +554,37 @@ end
 
 function tree_to_contraction_plan(::TensorNetwork, tree::Int, labels::Array{Symbol, 1})::Tuple{Array{NTuple{3, Symbol}, 1}, Symbol}
     [], labels[tree]
+end
+
+# **************************************************************************************** #
+#       Simple pre contraction planning operations
+# **************************************************************************************** #
+
+"""
+    contract_low_rank_tenors!(tn::TensorNetwork, max_rank=1)
+
+Contract in tensors which have rank that's lower than or equal to
+provided max rank
+"""
+function contract_low_rank_tenors!(tn::TensorNetwork, max_rank=1)
+    # function to find first tensor with rank less than or equal to max rank
+    # and with tensors connected to all its indices
+    find_t = () -> findfirst(tn) do x
+        if length(size(x)) <= max_rank
+            ns = unique(vcat([tn[x] for x in QXTns.inds(x)]...))
+            if length(ns) == length(size(x)) + 1 return true end
+        end
+        false
+    end
+    t = find_t()
+    plan = Vector{NTuple{3, Symbol}}()
+    while t !== nothing
+        ns = neighbours(tn, t)
+        # sort in increasing order of rank
+        ns = sort(ns, by=x -> length(size(tn[x])))
+        o = contract_pair!(tn, t, ns[1], mock=true)
+        push!(plan, (t, ns[1], o))
+        t = find_t()
+    end
+    plan
 end

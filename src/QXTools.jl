@@ -3,16 +3,15 @@ using Logging
 import QXZoo
 import DataStructures: OrderedDict
 
-# utilities circuit manipulation
+# circuit manipulation
 include("circuits/circuits.jl")
-
+# circuit to tn conversion
 include("tn_conversion.jl")
-
+# contraction planning
 include("contraction_planning.jl")
-
-# data structures and functions for dealing with DSL and parameter files
+# dsl and parameter files
 include("dsl/dsl.jl")
-
+# simulation utilities
 include("simulation.jl")
 
 end
