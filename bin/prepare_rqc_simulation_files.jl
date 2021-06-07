@@ -41,24 +41,6 @@ function parse_commandline(ARGS)
             help = "Function to maximise when selecting vertices to remove."
             default = :direct_treewidth
             arg_type = Symbol
-        "--output_method"
-            help = "Method for selecting amplitudes to output. (uniform, rejection, list)"
-            default = :List
-            arg_type = Symbol
-        "--num_outputs", "-n"
-            help = "Number of amplitudes or bitstring samples to output"
-            default = nothing
-        "--M"
-            help = "Constant to use for rejection sampling"
-            default = 0.001
-            arg_type = Float64
-        "--fix_M"
-            help = "Fix rejection sampling constant for frugal sampling"
-            default = false
-            arg_type = Bool
-        "--bitstrings"
-            help = "The bitstrings to compute amplitudes for if list output method is selected"
-            default = nothing
         "--prefix", "-p"
             help = "Prefix to use for output files"
             required = true
@@ -67,6 +49,8 @@ function parse_commandline(ARGS)
             help = "Verbose output"
             action = :store_true
     end
+    import_settings!(s, create_output_parser())
+
     return parse_args(ARGS, s)
 end
 
@@ -87,14 +71,6 @@ function main(ARGS)
     score_function = parsed_args["score_function"]
     number_bonds_to_slice = parsed_args["sliced_bonds"]
 
-    # Output parameters.
-    output_method = parsed_args["output_method"]
-    num_outputs = parsed_args["num_outputs"]
-    num_outputs === nothing || (num_outputs = parse(Int64, num_outputs))
-    M = parsed_args["M"]
-    fix_M = parsed_args["fix_M"]
-    bitstrings = parsed_args["bitstrings"]
-
     # Other parameters.
     seed = parsed_args["seed"]
     if seed !== nothing
@@ -103,23 +79,21 @@ function main(ARGS)
     output_prefix = parsed_args["prefix"]
     verbose = parsed_args["verbose"]
 
+    output_args = process_output_args(rows*cols, parsed_args)
+
     @info("Create circuit with $(rows * cols) qubits")
     circ = create_rqc_circuit(rows, cols, depth, seed)
     @info("Circuit created with $(circ.circ_ops.len) gates")
 
-    generate_simulation_files(circ;
-                              number_bonds_to_slice=number_bonds_to_slice,
+    generate_simulation_files(circ,
+                              output_prefix,
+                              number_bonds_to_slice;
                               decompose=decompose,
-                              output_prefix=output_prefix,
-                              output_method=output_method,
-                              num_outputs=num_outputs,
                               seed=seed,
+                              output_args=output_args,
                               hypergraph=hypergraph,
                               time=time,
-                              score_function=score_function,
-                              M=M,
-                              fix_M=fix_M,
-                              bitstrings=bitstrings)
+                              score_function=score_function)
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

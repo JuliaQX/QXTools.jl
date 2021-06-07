@@ -1,4 +1,4 @@
-import JLD2
+using JLD2
 
 export TensorCache, save_cache
 

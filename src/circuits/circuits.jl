@@ -2,8 +2,8 @@ module Circuits
 
 using QXZoo
 
-export create_test_circuit, create_qft_circuit, create_ghz_circuit, create_rqc_circuit
-export gate_matrix, gate_qubits
+export create_test_circuit, create_qft_circuit, create_ghz_circuit
+export create_rqc_circuit, gate_matrix, gate_qubits
 
 """
 Functions to create circuits

@@ -1,4 +1,5 @@
 module TestCLI
+using Base: decompose
 import Logging
 using Test
 using YAML
@@ -24,14 +25,14 @@ include("../bin/prepare_rqc_simulation_files.jl")
     mktempdir() do path
         prefix = joinpath(path, "rqc_3_3_8")
         N = 20
-        args = ["-p", prefix, "-n", "$N", "--time", "30", "--output_method", "rejection"]
+        args = ["-p", prefix, "-n", "$N", "--time", "30", "--output_method", "Rejection"]
         Logging.with_logger(Logging.NullLogger()) do # suppress logging
             main(args)
         end
         @test all([isfile(prefix * suffix) for suffix in [".qx", ".jld2", ".yml"]])
 
         params = YAML.load_file(prefix * ".yml")
-        @test params["output"]["method"] == "rejection"
+        @test params["output"]["method"] == "Rejection"
         @test params["output"]["params"]["num_samples"] == N
     end
 

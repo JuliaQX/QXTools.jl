@@ -1,5 +1,6 @@
-using AbstractTrees
+include("tensor_cache.jl")
 
+using AbstractTrees
 using QXContexts
 
 export build_compute_tree
@@ -56,7 +57,7 @@ function build_compute_tree(tnc::TensorNetworkCircuit,
         end
     end
 
-    # now add contraction nodes in
+    # now add contraction nodes following plan
     for c in plan
         A_sym, B_sym, C_sym = c
         while haskey(changed_ids, A_sym) A_sym = changed_ids[A_sym] end
@@ -72,6 +73,7 @@ function build_compute_tree(tnc::TensorNetworkCircuit,
         contract_pair!(tn, A_sym, B_sym, C_sym; mock=true)
     end
 
+    # if there are multiple disconnected trees, contract these so there is a single tree s
     parentless = collect(keys(filter(x -> !isdefined(x[2], :parent), nodes)))
     reduce(parentless[2:end], init=parentless[1]) do x, y
         r = contraction_indices(tn, x, y)

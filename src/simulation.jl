@@ -1,7 +1,9 @@
 using Random
+using YAML
 
 export amplitudes_uniform, amplitudes_all
 export generate_simulation_files, run_simulation
+export generate_parameter_file
 
 """
     amplitudes_all(qubits::Int)
@@ -130,43 +132,23 @@ function run_simulation(circ::QXZoo.Circuit.Circ;
 end
 
 """
-function output_params_dict(qubits::Int,
-                            num_outputs::Int64=10;
-                            output_method::Symbol=:List,
-                            seed::Union{Int64, Nothing}=nothing,
-                            M::Float64=0.0001,
-                            fix_M::Bool=false,
-                            bitstrings::Union{Vector{String}, Nothing}=nothing)
+    generate_parameter_file(filename_prefix::String,
+                            output_parameters)
 
-Function to construct dictionary with appropriate paramters to describe sampling approach.
+Generate a yml file with details of how outputs are sampled
+
+output:
+    output_method: rejection
+    params:
+        fix_M: false
+        M: 0.001
+        num_samples: 10
+        seed: ~
 """
-function output_params_dict(qubits::Int,
-                            num_outputs::Int64=10;
-                            output_method::Symbol=:List,
-                            seed::Union{Int64, Nothing}=nothing,
-                            M::Float64=0.0001,
-                            fix_M::Bool=false,
-                            bitstrings::Union{Vector{String}, Nothing}=nothing)
-    output_args = OrderedDict()
-    output_args[:method] = output_method
-    output_params = OrderedDict()
-    if output_method == :Rejection
-        output_params[:num_qubits] = qubits
-        output_params[:M] = M
-        output_params[:fix_M] = fix_M
-        output_params[:seed] = seed
-        output_params[:num_samples] = num_outputs
-    elseif output_method == :List
-        if bitstrings === nothing
-            bitstrings = collect(amplitudes_uniform(qubits, seed, num_outputs))
-        else num_outputs = length(bitstrings) end
-        output_params[:num_samples] = num_outputs
-        output_params[:bitstrings] = bitstrings
-    elseif output_method == :Uniform
-        output_params[:num_qubits] = qubits
-        output_params[:num_samples] = num_outputs
-        output_params[:seed] = seed
-    end
-    output_args[:params] = output_params
-    output_args
+function generate_parameter_file(filename_prefix::String,
+                                 output_parameters)
+    config = Dict()
+    config["output"] = output_parameters
+
+    YAML.write_file("$(filename_prefix).yml", config)
 end
