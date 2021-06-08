@@ -27,12 +27,12 @@ function amplitudes_uniform(qubits::Int, seed::Union{Int, Nothing}, number_ampli
 end
 
 """
-    generate_simulation_files(circ::QXZoo.Circuit.Circ;
-                              number_bonds_to_slice::Int=2,
+    generate_simulation_files(circ::QXZoo.Circuit.Circ,
                               output_prefix::String="simulation_input",
-                              num_amplitudes::Union{Int64, Nothing}=nothing,
-                              seed::Union{Int64, Nothing}=nothing,
+                              number_bonds_to_slice::Int=2;
                               decompose::Bool=true,
+                              seed::Union{Int64, Nothing}=nothing,
+                              output_args::Union{OrderedDict, Nothing}=nothing,
                               kwargs...)
 
 Function to generate files required by qxrun to simulate the given circuit. This includes
@@ -66,7 +66,7 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ,
                                                      seed=fc_seed,
                                                      kwargs...)
 
-    compute_tree = build_compute_tree(tnc, plan, bond_groups)
+    compute_tree = build_compute_graph(tnc, plan, bond_groups)
 
     @info("Prepare DSL and data files")
     generate_dsl_files(compute_tree, output_prefix; force=true, metadata=metadata)

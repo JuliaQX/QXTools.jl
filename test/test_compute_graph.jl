@@ -27,7 +27,7 @@ end
     circ = create_test_circuit()
     tnc = convert_to_tnc(circ)
     plan = min_fill_contraction_plan(tnc)
-    cg = build_compute_tree(tnc, plan)
+    cg = build_compute_graph(tnc, plan)
     # test that number of nodes in compute graph is
     # tensors in network + length of plan + 1 for save node
     @test length(cg.root) == length(tnc) + length(plan) + 1

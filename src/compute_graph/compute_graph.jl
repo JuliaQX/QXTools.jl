@@ -3,16 +3,16 @@ include("tensor_cache.jl")
 using AbstractTrees
 using QXContexts
 
-export build_compute_tree
+export build_compute_graph
 
 """
-build_compute_tree(tnc::TensorNetworkCircuit,
+build_compute_graph(tnc::TensorNetworkCircuit,
                    plan::Vector{<:Tuple}),
                    bond_groups::Union{Nothing, Vector{<:Vector{<:Index}}}=nothing)
 
 Function to build a compute tree from a tensor network and plan
 """
-function build_compute_tree(tnc::TensorNetworkCircuit,
+function build_compute_graph(tnc::TensorNetworkCircuit,
                             plan::Vector{<:Tuple},
                             bond_groups::Union{Nothing, Vector{<:Vector{<:Index}}}=nothing)
     tnc = copy(tnc)
@@ -78,7 +78,6 @@ function build_compute_tree(tnc::TensorNetworkCircuit,
     reduce(parentless[2:end], init=parentless[1]) do x, y
         r = contraction_indices(tn, x, y)
         op = ContractCommand(:dummy, r.c_labels, x, r.a_labels, y, r.b_labels)
-        # cmd = gen_ncon_command(tn, x, y, :dummy)
         sym = contract_pair!(tn, x, y, mock=true)
         op.output_name = sym
         node = ComputeNode{ContractCommand}(op)
@@ -95,5 +94,5 @@ function build_compute_tree(tnc::TensorNetworkCircuit,
     node = ComputeNode(SaveCommand(:output, root))
     push!(node.children, nodes[root])
     nodes[root].parent = node
-    ComputeTree(node, convert(Dict, tc))
+    ComputeGraph(node, convert(Dict, tc))
 end
