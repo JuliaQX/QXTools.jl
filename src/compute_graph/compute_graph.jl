@@ -64,7 +64,7 @@ function build_compute_graph(tnc::TensorNetworkCircuit,
         while haskey(changed_ids, B_sym) B_sym = changed_ids[B_sym] end
         r = contraction_indices(tn, A_sym, B_sym)
         op = ContractCommand(C_sym, r.c_labels, A_sym, r.a_labels, B_sym, r.b_labels)
-        node = ComputeNode{ContractCommand}(op)
+        node = ComputeNode(op)
         for s in [A_sym, B_sym]
             nodes[s].parent = node
             push!(node.children, nodes[s])
