@@ -49,7 +49,7 @@ function build_compute_graph(tnc::TensorNetworkCircuit,
                 op = ViewCommand(new_sym, t, slice_sym, index_position, slice_dim)
                 replace_tensor_symbol!(tn, t, new_sym)
                 changed_ids[t] = new_sym
-                node = ComputeNode{ViewCommand}(op)
+                node = ComputeNode(op)
                 push!(node.children, nodes[t])
                 nodes[t].parent = node
                 nodes[new_sym] = node
