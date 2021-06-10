@@ -1,4 +1,4 @@
-import JLD2
+using JLD2
 
 export TensorCache, save_cache
 
@@ -12,6 +12,10 @@ mutable struct TensorCache{Elt}
                                                            Array{Tuple{Symbol, Vector{T}}, 1}}(),
                                                            Dict{Symbol, Vector{Int64}}(), 1, label)
     TensorCache() = TensorCache{ComplexF64}()
+end
+
+function Base.show(io::IO, tc::TensorCache{Elt}) where Elt
+    write(io, "TensorCache{$(Elt)}: $(length(tc.key_dim_map)) tensors with $(length(tc.tensors)) shapes")
 end
 
 """
@@ -99,4 +103,9 @@ function save_cache(tc::TensorCache{T}, filename::String) where T
     jldopen(filename, "a+") do io
         save_cache(tc, io)
     end
+end
+
+"""Implement convert for converting a tensor cache to a dictionary"""
+function Base.convert(Dict, tc::TensorCache)
+    Dict{Symbol, AbstractArray}(key => tc[key] for key in keys(tc.key_dim_map))
 end

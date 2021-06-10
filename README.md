@@ -16,7 +16,7 @@ clusters.
 The design and implementation of QXTools and related packages was inspired by many other frameworks and packages including ITensors.jl, TensorOperations.jl,
 Yao.jl, TAL-SH and ExaTN.
 
-# Installation
+## Installation
 
 QXTools is a Julia package and can be installed using Julia's inbuilt package manager from the Julia REPL using.
 
@@ -25,7 +25,7 @@ import Pkg
 Pkg.add("QXTools")
 ```
 
-# Example usage
+## Example usage
 
 An example of how QXTools can be used to calculate a set of amplitudes for small GHZ preparation circuit looks like
 
@@ -72,12 +72,12 @@ will generate the files:
 These can be used as input to QXContexts to run the simulation on HPC clusters to calculate the amplitudes for 4 bitstrings sampled uniformly.
 For more details and options see the documentation at [docs](https://juliaqx.github.io/QXContexts.jl/dev/).
 
-# Contributing
+## Contributing
 Contributions from users are welcome and we encourage users to open issues and submit merge/pull requests for any problems or feature requests they have. The
 [CONTRIBUTING.md](CONTRIBUTION.md) has further details of the contribution guidelines.
 
 
-# Building documentation
+## Building documentation
 
 QXTools.jl using [Documenter.jl](https://juliadocs.github.io/Documenter.jl/stable/) to generate documentation. To build
 the documentation locally run the following from the `docs` folder.

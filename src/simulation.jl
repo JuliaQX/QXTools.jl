@@ -1,5 +1,9 @@
+using Random
+using YAML
+
 export amplitudes_uniform, amplitudes_all
 export generate_simulation_files, run_simulation
+export generate_parameter_file
 
 """
     amplitudes_all(qubits::Int)
@@ -23,12 +27,12 @@ function amplitudes_uniform(qubits::Int, seed::Union{Int, Nothing}, number_ampli
 end
 
 """
-    generate_simulation_files(circ::QXZoo.Circuit.Circ;
-                              number_bonds_to_slice::Int=2,
+    generate_simulation_files(circ::QXZoo.Circuit.Circ,
                               output_prefix::String="simulation_input",
-                              num_amplitudes::Union{Int64, Nothing}=nothing,
-                              seed::Union{Int64, Nothing}=nothing,
+                              number_bonds_to_slice::Int=2;
                               decompose::Bool=true,
+                              seed::Union{Int64, Nothing}=nothing,
+                              output_args::Union{OrderedDict, Nothing}=nothing,
                               kwargs...)
 
 Function to generate files required by qxrun to simulate the given circuit. This includes
@@ -44,16 +48,12 @@ file with the parameters to use during the simulation.
 - `decompose::Bool=true`: set if two qubit gates should be decompoed when the circuit is converted to a tensor network.
 - `kwargs`: all other kwargs are passed to `contraction_scheme` when it is called.
 """
-function generate_simulation_files(circ::QXZoo.Circuit.Circ;
-                                   number_bonds_to_slice::Int=2,
-                                   decompose::Bool=true,
-                                   output_method::Symbol=:list,
+function generate_simulation_files(circ::QXZoo.Circuit.Circ,
                                    output_prefix::String="simulation_input",
+                                   number_bonds_to_slice::Int=2;
+                                   decompose::Bool=true,
                                    seed::Union{Int64, Nothing}=nothing,
-                                   num_outputs::Union{Int64, Nothing}=nothing,
-                                   M::Float64=0.0001,
-                                   fix_M::Bool=false,
-                                   bitstrings::Union{Vector{String}, Nothing}=nothing,
+                                   output_args::Union{OrderedDict, Nothing}=nothing,
                                    kwargs...)
 
     @info("Convert circuit to tensor network")
@@ -62,98 +62,18 @@ function generate_simulation_files(circ::QXZoo.Circuit.Circ;
 
     @info("Get contraction plan and edges to slice using QXGraphDecompositions")
     fc_seed = (seed === nothing) ? -1 : seed # flow cutter seed expects -1 in place of nothing.
-    bonds_to_slice, plan, metadata = contraction_scheme(tnc.tn, number_bonds_to_slice;
-                                                        seed=fc_seed,
-                                                        kwargs...)
+    bond_groups, plan, metadata = contraction_scheme(tnc.tn, number_bonds_to_slice;
+                                                     seed=fc_seed,
+                                                     kwargs...)
 
-    bond_groups_to_slice = expand_slice_bonds_to_hyperindices(tnc.tn, bonds_to_slice)
-
-    @info("Write parameter file for retrieving $num_outputs amplitudes")
-    output_args = OrderedDict()
-    output_args[:method] = output_method
-    output_params = OrderedDict()
-    if output_method == :rejection
-        output_params[:num_qubits] = tnc.qubits
-        output_params[:M] = M
-        output_params[:fix_M] = fix_M
-        output_params[:seed] = seed
-        output_params[:num_samples] = num_outputs === nothing ? 10 : num_outputs
-
-    elseif output_method == :list
-        if bitstrings === nothing
-            bitstrings = amplitudes_all(qubits(tnc))
-        end
-        if num_outputs === nothing
-            num_outputs = length(bitstrings)
-        end
-        output_params[:num_samples] = num_outputs
-        output_params[:bitstrings] = collect(bitstrings)[1:num_outputs]
-
-    elseif output_method == :uniform
-        output_params[:num_qubits] = tnc.qubits
-        output_params[:num_samples] = num_outputs === nothing ? 10 : num_outputs
-        output_params[:seed] = seed
-    end
-    output_args[:params] = output_params
-    generate_parameter_file(output_prefix, bond_groups_to_slice, output_args)
+    compute_tree = build_compute_graph(tnc, plan, bond_groups)
 
     @info("Prepare DSL and data files")
-    generate_dsl_files(tnc, output_prefix, plan, bond_groups_to_slice; force=true, metadata=metadata)
+    generate_dsl_files(compute_tree, output_prefix; force=true, metadata=metadata)
+
+    if output_args === nothing output_args = output_params_dict(qubits(tnc)) end
+    generate_parameter_file(output_prefix, output_args)
 end
-
-"""
-    _find_hyper_edges(tn::TensorNetwork, bond::Index)
-
-Given a tensor network and a bond in the network, find all bonds that are related via hyper edge
-relations. Involves recurisively checking bonds connected to neighbouring tensors of any newly
-related edges found. Returns an array in all edges in the group including the intial edge.
-"""
-function _find_hyper_edges(tn::TensorNetwork, bond::Index)
-    visited_tensors = Set{Symbol}()
-    tensors_to_visit = Set{Symbol}()
-    push!.([tensors_to_visit], tn[bond])
-    related_edges = Set{Index}([bond])
-    while length(tensors_to_visit) > 0
-        tensor_sym = pop!(tensors_to_visit)
-        push!(visited_tensors, tensor_sym)
-        for g in hyperindices(tn[tensor_sym])
-            if length(intersect(related_edges, g)) > 0
-                for e in setdiff(union(related_edges, g), intersect(related_edges, g))
-                    push!(related_edges, e)
-                    for t in tn[e]
-                        if !(t in visited_tensors)
-                            push!(tensors_to_visit, t)
-                        end
-                    end
-                end
-            end
-        end
-    end
-    collect(related_edges)
-end
-
-"""
-    expand_slice_bonds_to_hyperindices(tn::TensorNetwork, bonds_to_slice::Array{<: Index, 1})
-
-Given a list of bonds to slice it is necessary to expand these to include bonds in the same hyper edge group. In
-this function for each of the bonds to slice we identify their hyper indices if any and return an array of
-groups of hyper edges to slice.
-"""
-function expand_slice_bonds_to_hyperindices(tn::TensorNetwork, bonds_to_slice::Array{<: Index, 1})
-    bond_groups = Array{Array{<:Index, 1}, 1}()
-    if length(bonds_to_slice) > 0
-        push!(bond_groups, _find_hyper_edges(tn, bonds_to_slice[1]))
-        if length(bonds_to_slice) > 1
-            for b in bonds_to_slice[2:end]
-                if !any([b in g for g in bond_groups])
-                    push!(bond_groups, _find_hyper_edges(tn, b))
-                end
-            end
-        end
-    end
-    bond_groups
-end
-
 
 """
     single_amplitude(tnc::TensorNetworkCircuit, plan::Array{<:Index, 1}, amplitude::Union{String, Nothing}=nothing)
@@ -211,4 +131,24 @@ function run_simulation(circ::QXZoo.Circuit.Circ;
     results
 end
 
+"""
+    generate_parameter_file(filename_prefix::String,
+                            output_parameters)
 
+Generate a yml file with details of how outputs are sampled
+
+output:
+    output_method: rejection
+    params:
+        fix_M: false
+        M: 0.001
+        num_samples: 10
+        seed: ~
+"""
+function generate_parameter_file(filename_prefix::String,
+                                 output_parameters)
+    config = Dict()
+    config["output"] = output_parameters
+
+    YAML.write_file("$(filename_prefix).yml", config)
+end
