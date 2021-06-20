@@ -3,7 +3,7 @@ using YAML
 
 export amplitudes_uniform, amplitudes_all
 export generate_simulation_files, run_simulation
-export generate_parameter_file
+export generate_parameter_file, generate_dsl_files
 
 """
     amplitudes_all(qubits::Int)
