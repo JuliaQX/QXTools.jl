@@ -24,7 +24,7 @@ function build_compute_graph(tnc::TensorNetworkCircuit,
     # add a load node for each tensor
     for t in keys(tnc)
         data_symbol = push!(tc, tensor_data(tnc, t))
-        op = LoadCommand(t, data_symbol, collect(size(tnc[t])))
+        op = LoadCommand(t, data_symbol, collect(size(tensor_data(tnc, t))))
         nodes[t] = ComputeNode{LoadCommand}(op)
     end
 
