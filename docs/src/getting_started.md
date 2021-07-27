@@ -16,8 +16,6 @@ An example of how QXTools can be used to calculate a set of amplitudes for small
 ```
 using QXTools
 using QXTools.Circuits
-using QXTns
-using QXGraphDecompositions
 
 # Create ghz circuit
 circ = create_ghz_circuit(3)
@@ -45,16 +43,12 @@ using QXTools.Circuits
 # Create ghz circuit
 circ = create_ghz_circuit(3)
 
-generate_simulation_files(circ; 
-                          number_bonds_to_slice=2, 
-                          output_prefix="ghz_3",
-                          output_method=:uniform
-                          num_outputs=4)
+generate_simulation_files(circ, "ghz_3", time=10)
 ```
 
 will generate the files:
 - `ghz_3.qx`: A DSL file with instructions
-- `ghz_3.jld2`: A data file with tensors
+- `ghz_3.jld2`: A data file with intitial tensors
 - `ghz_3.yml`: A parameter file with parameters controlling the simulation
 
-These can be used as input to QXContexts to run the simulation on HPC clusters to calculate the amplitudes for 4 bitstrings sampled uniformly.
+These can be used as input to QXContexts to run the simulation on distributed clusters.
