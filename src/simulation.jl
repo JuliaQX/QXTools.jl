@@ -110,7 +110,7 @@ function run_simulation(circ::QXZoo.Circuit.Circ;
     @info("Graph created: $(g)")
 
     @info("Get contraction plan and edges to slice using QXGraphDecompositions")
-    plan = quickbb_contraction_plan(tnc)
+    plan = flow_cutter_contraction_plan(tnc; hypergraph=true)
 
     # to prevent memory issues don't attempt to get all amplitudes for large numbers of qubits
     # unless specifically demanded

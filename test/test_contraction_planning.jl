@@ -51,7 +51,7 @@ end
     tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
 
     # test contraction plan
-    plan = quickbb_contraction_plan(tnc)
+    plan = flow_cutter_contraction_plan(tnc; time=30)
     @test length(plan) == 5
 
     # test contracting the network
@@ -77,7 +77,7 @@ end
     # Test contraction plan creation with hypergraph.
     circ = create_test_circuit()
     tnc = convert_to_tnc(circ, no_input=false, no_output=false, decompose=false)
-    plan = quickbb_contraction_plan(tnc; hypergraph=true)
+    plan = flow_cutter_contraction_plan(tnc; time=30, hypergraph=true)
     @test length(plan) == 8
 
     # Test contraction scheme function with hypergraph.
@@ -94,7 +94,7 @@ end
         Circuit.add_gatecall!(circ, DefaultGates.z(1))
     end
     tnc = convert_to_tnc(circ, no_input=false, no_output=false, decompose=false)
-    plan = quickbb_contraction_plan(tnc; hypergraph=true)
+    plan = flow_cutter_contraction_plan(tnc; time = 30, hypergraph=true)
     @test length(plan) == 41
 end
 
@@ -171,9 +171,9 @@ end
     hyper_lg, hyper_symbol_map = convert_to_line_graph(tnc; use_hyperedges=true)
 
     # Get an elimination order for the line graphs.
-    order, metadata = QXTools.qxg.quickbb(lg)
+    tw, order = QXTools.qxg.min_fill(lg)
     order = [symbol_map[edge] for edge in order]
-    hyper_order, hyper_metadata = QXTools.qxg.quickbb(hyper_lg)
+    hyper_tw, hyper_order = QXTools.qxg.min_fill(hyper_lg)
     hyper_order = [hyper_symbol_map[edge] for edge in hyper_order]
 
     # Try converting the orders to contraction plans
