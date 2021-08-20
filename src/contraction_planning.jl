@@ -3,7 +3,7 @@ import LightGraphs
 import QXTns
 
 export convert_to_graph, convert_to_line_graph
-export quickbb_contraction_plan, contraction_scheme
+export contraction_scheme
 export flow_cutter_contraction_plan, min_fill_contraction_plan
 export netcon
 
@@ -70,77 +70,6 @@ convert_to_line_graph(tnc::TensorNetworkCircuit; kwargs...) = convert_to_line_gr
 # **************************************************************************************** #
 #                              Contraction Planning
 # **************************************************************************************** #
-
-"""
-    quickbb_contraction_plan(tn::TensorNetwork)
-
-Use QuickBB to create a contraction plan for 'tn'.
-
-# Keywords
-- `time::Integer=120`: the number of second to run the quickbb binary for.
-- `order::Symbol=:min_fill`: the branching order to be used by quickbb (:random or :min_fill).
-- `hypergraph::Bool=false`: set if hyperedges exist in `tn` and should be accounted for.
-"""
-function quickbb_contraction_plan(tn::TensorNetwork;
-                                  time::Integer=120,
-                                  order::Symbol=:min_fill,
-                                  hypergraph::Bool=false)
-    # Convert tn to a line graph and pass it to quickbb to find an elimination order.
-    lg, symbol_map = convert_to_line_graph(tn, use_hyperedges=hypergraph)
-    if qxg.nv(lg) > 1 # quickkbb fails on trivial graphs with 1 vertex.
-        order, metadata = qxg.quickbb(lg; time=time, order=order)
-    elseif qxg.nv(lg) == 1
-        order = qxg.labels(lg)
-    end
-
-    # Convert the elimination order to an array of Index structs in tn.
-    order = [symbol_map[index_symbol] for index_symbol in order]
-
-    # Convert the elimination order into a contraction plan.
-    order_to_contraction_plan(order, tn)
-end
-
-quickbb_contraction_plan(tnc::TensorNetworkCircuit; kwargs...) = quickbb_contraction_plan(tnc.tn; kwargs...)
-
-"""
-    quickbb_contraction_plan(tensors::OrderedDict{Symbol, Array{Index, 1}})
-
-Use QuickBB to create a contraction plan for the set of tensors described by the OrderedDict
-`tensors`.
-
-The keys of `tensors` are assumed to be ids/names of tensors and the values are arrays of
-indices belonging to the corrseponding tensor.
-
-# Keywords
-- `time::Integer=0`: the number of second to run the quickbb binary for.
-- `order::Symbol=:_`: the branching order to be used by quickbb (:random or :min_fill).
-"""
-function quickbb_contraction_plan(tensors::OrderedDict{Symbol, Array{Index, 1}};
-                                  time::Integer=0,
-                                  order::Symbol=:min_fill)
-    # Create a graph for the tensors and convert it to to a line graph.
-    tensor_ids = collect(keys(tensors))
-    g = qxg.LabeledGraph(length(tensor_ids))
-    for i = 1:length(tensor_ids)-1
-        for j = i+1:length(tensor_ids)
-            if !isempty(intersect(tensors[tensor_ids[i]], tensors[tensor_ids[j]]))
-                qxg.add_edge!(g, i, j)
-            end
-        end
-    end
-    lg = qxg.line_graph(g)
-
-    # Call quickbb to find a vertex elimination order for the line graph.
-    order, metadata = qxg.quickbb(lg; time=time, order=order)
-
-    # Convert the elimination order to an array of tensor symbol pairs.
-    order = [parse.(Int, split(String(lg_vertex), '_')) for lg_vertex in order]
-    order = [[tensor_ids[edge[1]], tensor_ids[edge[2]]] for edge in order]
-
-    # Convert the elimination order into a contraction plan.
-    order_to_contraction_plan(order, tensors)
-end
-
 
 """
     flow_cutter_contraction_plan(tn::TensorNetwork;
