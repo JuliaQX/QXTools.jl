@@ -6,28 +6,28 @@ tags:
   - Simulation
   - Tensor networks
 authors:
-  - name: Momme Allalen
-    affiliation: 1
-  - name: David Brayford
-    affiliation: 1
+
   - name: John Brennan
-    affiliation: 2
-  - name: Myles Doyle
-    affiliation: 2
+    affiliation: 1
+  - name: Lee O’Riordan
+    affiliation: 1
   - name: Kenneth Hanley
+    affiliation: 1
+  - name: Myles Doyle
+    affiliation: 1
+  - name: Momme Allalen
+    affiliation: 2
+  - name: David Brayford
     affiliation: 2
   - name: Luigi Iapichino
     affiliation: 2
   - name: Niall Moran^[corresponding author]
     orcid: 0000-0002-2619-5040
-    affiliation: 2
-#    affiliation: "1, 2" # (Multiple affiliations must be quoted)
-  - name: Lee O’Riordan
-    affiliation: 2
+    affiliation: 1
 affiliations:
- - name: Leibniz Supercomputing Centre
-   index: 1
  - name: Irish Centre for High-End Computing, Ireland
+   index: 1
+ - name: Leibniz Supercomputing Centre
    index: 2
 date: 12 August 2021
 bibliography: paper.bib
