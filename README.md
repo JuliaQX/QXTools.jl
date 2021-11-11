@@ -13,6 +13,8 @@ is capable of generating and manipulating quantum circuits, QXTns which features
 QXGraphDecompositions which implements a number of graph algorithms for finding good contraction plans and QXContexts which is designed to run on large distributed
 clusters.
 
+Documentation can be found [here](https://JuliaQX.github.io/QXTools.jl/dev). 
+
 The design and implementation of QXTools and related packages was inspired by many other frameworks and packages including ITensors.jl, TensorOperations.jl,
 Yao.jl, TAL-SH and ExaTN.
 
@@ -83,7 +85,7 @@ the documentation locally run the following from the `docs` folder.
 The first time it is will be necessary to instantiate the environment to install dependencies
 
 ```
-julia --project 'import Pkg; Pkg.instantiate()'
+julia --project -e 'import Pkg; Pkg.instantiate()'
 ```
 
 and then to build the documentation
