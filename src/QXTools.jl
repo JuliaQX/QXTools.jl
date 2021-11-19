@@ -1,8 +1,11 @@
 module QXTools
 using Logging
 using Reexport
-import QXZoo
+using QXZoo
+using QXTns
 import DataStructures: OrderedDict
+
+export TensorNetworkCircuit, add_input!, add_output!
 
 # circuit manipulation
 include("circuits/circuits.jl")

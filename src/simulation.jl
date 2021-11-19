@@ -1,6 +1,7 @@
 using Random
 using YAML
 
+export single_amplitude
 export amplitudes_uniform, amplitudes_all
 export generate_simulation_files, run_simulation
 export generate_parameter_file, generate_dsl_files

@@ -39,7 +39,7 @@ function parse_commandline(ARGS)
             arg_type = Int64
         "--score_function"
             help = "Function to maximise when selecting vertices to remove."
-            default = :direct_treewidth
+            default = :tree_trimming
             arg_type = Symbol
         "--prefix", "-p"
             help = "Prefix to use for output files"
