@@ -38,7 +38,7 @@ push!(tnc, [1, 2], CX)
 
 ## Contracting a TensorNetworkCircuit.
 
-After creating a `TensorNetworkCircuit`, we may then want to compute the probability amplitude for a particular bitstring. To compute amplitudes for different measurement outcomes, we first set the initial state of the qubits in the circuit. This can be done using the `add_inputs!` function. For example, calling `add_inputs!(tnc, "111")` will add tensors to the tensor network which set the initial state of the circuit's qubits to the basis state labeled by "111". By default, calling `add_inputs!(tnc)` will set the initial qubit state to the "all zeros" state. 
+After creating a `TensorNetworkCircuit`, we may then want to compute the probability amplitude for a particular bitstring. To compute amplitudes for different measurement outcomes, we first set the initial state of the qubits in the circuit. This can be done using the `add_inputs!` function. For example, calling `add_inputs!(tnc, "111")` will add tensors to the tensor network which set the initial state of the circuit's qubits to the basis state labeled by "111". By default, calling `add_inputs!(tnc)` will set the initial qubit state to the "all zeros" state.
 
 ```
 # Set the initial state of the qubits to "000".
@@ -52,7 +52,7 @@ Next, we need to calculate a contraction plan for the tensor network. A contract
 plan = flow_cutter_contraction_plan(tnc; time=1)
 ```
 
-We can now compute probabiliy amplitudes using the `single_amplitude` function. Calling this function on our `TensorNetworkCircuit` object, its contraction plan and a string, indicating a product state of the qubits, will result in a copy of the circuit's tensor network being contracted according to the given contraction plan and the desired probability amplitude being returned. Note, the characters in the string give the states of the individual qubits in ascending order such that the first character in the string gives the state of the first qubit in the circuit etc. 
+We can now compute probabiliy amplitudes using the `single_amplitude` function. Calling this function on our `TensorNetworkCircuit` object, its contraction plan and a string, indicating a product state of the qubits, will result in a copy of the circuit's tensor network being contracted according to the given contraction plan and the desired probability amplitude being returned. Note, the characters in the string give the states of the individual qubits in ascending order such that the first character in the string gives the state of the first qubit in the circuit etc.
 
 ```
 # Contract the network using this plan to find the given amplitude for different outputs.
@@ -62,3 +62,7 @@ We can now compute probabiliy amplitudes using the `single_amplitude` function. 
 # The `+` and `-` characters are also supported to represent the states ("0" + "1") and ("0" - "1") respectively.
 @show single_amplitude(tnc, plan, "1++")
 ```
+
+Contracting a network with the `simple_amplitude` function will contract the network using the [QXTns](https://github.com/JuliaQX/QXTns.jl) package. This works well for small networks and for retrieving the amplitudes of one bitstring at a time.
+For more complex networks and output sampling methods we instead use the [QXContexts](https://github.com/JuliaQX/QXContexts.jl) package which provides more advanced sampling tools and supports distributed simulation as well as the use of GPU accelerators.
+The workflow for using QXContexts to contract networks is described in the [Running Distributed Simulations](distributed.md) tutorial.

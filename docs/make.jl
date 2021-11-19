@@ -15,7 +15,7 @@ makedocs(;
         "Home" => "index.md",
         "Getting Started" => "getting_started.md",
         "User's Guide" => "users_guide.md",
-        "Tutorials" => ["basics.md","features.md"],
+        "Tutorials" => ["basics.md", "circuits.md", "features.md", "distributed.md"],
         "LICENSE" => "license.md"
     ],
 )
