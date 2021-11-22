@@ -8,6 +8,7 @@ tags:
 authors:
 
   - name: John Brennan
+    orcid: 0000-0002-4428-6798
     affiliation: 1
   - name: Lee O’Riordan
     affiliation: 1
@@ -44,12 +45,16 @@ random sampling approaches. QXTools is intended to be used by researchers intere
 simulating circuits larger than those possible with full wave-function simulators or those
 interested in tensor network circuit simulation methods.
 
-QXTools is written in Julia [@Bezanson:2017] and is designed to run on large distributed compute clusters and to support GPU accelerators. The simulation workflow is broken down into a number of stages, each of which is managed by a special purpose package which can be used independently or
-as part of the QXTools framework. A domain specific language (DSL) is used to
-express the simulation as a set of tensor network operations.
-This separates the high level index accounting and contraction planning from the
-low level implementation of the tensor network operations and makes it easier to
-support new hardware and network architectures.
+QXTools is written in Julia [@Bezanson:2017] and is designed to run on large distributed 
+compute clusters and to support GPU accelerators. The simulation workflow is broken down into 
+a number of stages, each of which is managed by a special purpose package which can be used 
+independently or as part of the QXTools framework. To find efficient contraction orders for 
+tensor networks, an algorithm called FlowCutter [Hamann:2016] is used to construct tree 
+decompositions with optimal treewidth of the network's line graph by iteratively partitioning 
+it using maximal flows on the graph. A domain specific language (DSL) is used to express the 
+simulation as a set of tensor network operations. This separates the high level index 
+accounting and contraction planning from the low level implementation of the tensor network 
+operations and makes it easier to support new hardware and network architectures.
 
 # Statement of need
 
@@ -80,8 +85,9 @@ roles are as follows:
 - QXTns.jl: Provides data structures representing tensor networks and tensor network
 circuits along with functionality for contracting these and keeping track of tensor
 indices and hyper-indices.
-- QXGraphDecompositions.jl: Provides specialised graph data structures and algorithms
-for finding good contraction orderings and edges to slice to decompose computations.
+- QXGraphDecompositions.jl: Provides specialised graph algorithms for optimizing tensor 
+network calculations and finding edges to slice to decompose computations. Here, 
+FlowCutter [Hamann:2016] is used to find good contraction orderings for a network.
 - QXContexts.jl: Provides computation tree data structures to represent computations
 and the ability to execute these compute graphs on different hardware platforms.
 - QXZoo.jl: Quantum circuit representations and manipulation functionality.
