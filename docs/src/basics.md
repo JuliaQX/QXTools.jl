@@ -56,7 +56,7 @@ We can now compute probabiliy amplitudes using the `single_amplitude` function. 
 ```
 # Contract the network using this plan to find the given amplitude for different outputs.
 @show single_amplitude(tnc, plan, "000")
-@show single_amplitude(tnc, plan, "111")
+@show single_amplitude(tnc, plan, "101")
 
 # The `+` and `-` characters are also supported to represent the states ("0" + "1") and ("0" - "1") respectively.
 @show single_amplitude(tnc, plan, "1++")

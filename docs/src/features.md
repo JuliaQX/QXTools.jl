@@ -69,6 +69,9 @@ The output of a distributed simulation run by `QXContexts` is determined by outp
 To generate random bitstrings, which are distributed as if they were measured on a real quantum device running our quantum circuit, rejection sampling can be used. To create the output dictionary for rejection sampling, we can use the following keyword arguments of `output_params_dict`. 
 
 ```
+num_qubits = 5
+num_outputs = 5
+
 output_params = output_params_dict(num_qubits, num_outputs;
                                     output_method = :Rejection,
                                     M = 0.0001,
@@ -83,6 +86,8 @@ Here, `M` is the parameter of rejection sampling the determines the average numb
 To compute the probability amplitudes for a list of bitstrings the list method can be used. In this case, we need only pass an array containing the bitstrings we want amplitudes for as a keyword argument to `output_params_dict`.
 
 ```
+num_qubits = 5
+num_outputs = 3
 bitstrings = ["1111", "1101", "0101"] 
 
 output_params = output_params_dict(num_qubits, num_outputs;
@@ -95,6 +100,9 @@ output_params = output_params_dict(num_qubits, num_outputs;
 To compute the probability ampltiudes for a number of uniformly random bitstrings we can use the uniform method. The following will generate an outputs dictionary which will get `QXContexts` to generate `num_outputs` uniformaly random bitstrings for a quantum circuit with `num_qubits` qubits and compute probabiltiy amplitudes for them.
 
 ```
+num_qubits = 5
+num_outputs = 3
+
 output_params = output_params_dict(num_qubits, num_outputs;
                                     output_method = :Uniform,
                                     seed = 42)
@@ -114,6 +122,7 @@ hypergraph = true
 number_indices_to_slice = 8
 
 # An output dictionary describing the desired output from the simulation.
+num_qubits = circ.num_qubits; num_outputs = 15
 output_args = output_params_dict(num_qubits, num_outputs; output_method = :Uniform, seed = 42)
 
 # Generate the files describing how the simulation should be executed by QXContexts.
