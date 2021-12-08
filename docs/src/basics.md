@@ -24,13 +24,14 @@ push!(tnc, [1], X)
 push!(tnc, [3], X)
 ```
 
-Similarly, to add a two qubit gate we can pass the matrix representation of the gate to the `push!` function, along with an array of integers indicating the target qubits we want the gate to act on. Note, for controlled gates, the first qubit in the array indicates the target qubit while the second qubit is taken as the control qubit.
+Similarly, to add a two qubit gate we can pass the matrix representation of the gate to the `push!` function, along with an array of integers indicating the target qubits we want the gate to act on. Note, the order of the target qubits is fixed by the given matrix representation of the gate.
 
 ```
 # Matrix representation of the controlled not gate.
 CX = [[1., 0., 0., 0.] [0., 1., 0., 0.] [0., 0., 0., 1.] [0., 0., 1., 0.]]
 
-# Note, the order of the qubits here is [target, control].
+# Note, for the given matrix representation of the CX gate
+# the order of the qubits here is [target, control].
 push!(tnc, [1, 2], CX)
 ```
 
