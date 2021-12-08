@@ -1,6 +1,6 @@
 module Circuits
 
-using QXZoo
+import QXZoo
 
 export create_test_circuit, create_qft_circuit, create_ghz_circuit
 export create_rqc_circuit, gate_matrix, gate_qubits

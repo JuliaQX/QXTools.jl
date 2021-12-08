@@ -1,6 +1,5 @@
 import QXGraphDecompositions as qxg
 import LightGraphs
-import QXTns
 
 export convert_to_graph, convert_to_line_graph
 export contraction_scheme
@@ -75,7 +74,7 @@ convert_to_line_graph(tnc::TensorNetworkCircuit; kwargs...) = convert_to_line_gr
     flow_cutter_contraction_plan(tn::TensorNetwork;
                                  time::Integer=60,
                                  seed::Integer=-1,
-                                 hypergraph::Bool=false)
+                                 hypergraph::Bool=true)
 
 Use flow cutter to create a contraction plan for 'tn'.
 
@@ -86,12 +85,12 @@ the specified amount of time then the min fill heuristic is used to find a contr
 - `time::Integer=60`: The number of seconds to run the flow cutter for.
 - `seed::Integer=-1`: Sets the seed used by flow cutter. If negative then flow cutter will 
                       choose a seed.
-- `hypergraph::Bool=false`: Sets if hyperedges in `tn` should be accounted for.
+- `hypergraph::Bool=true`: Sets if hyperedges in `tn` should be accounted for.
 """
 function flow_cutter_contraction_plan(tn::TensorNetwork; 
                                       time::Integer=60,
                                       seed::Integer=-1,
-                                      hypergraph::Bool=false)
+                                      hypergraph::Bool=true)
     # Convert tn to a line graph and pass it to flow cutter to find an tree decomposition.
     lg, symbol_map = convert_to_line_graph(tn, use_hyperedges=hypergraph)
 
@@ -188,7 +187,7 @@ Given a list of bonds to slice it is necessary to expand these to include bonds 
 this function for each of the bonds to slice we identify their hyper indices if any and return an array of
 groups of hyper edges to slice.
 """
-function expand_slice_bonds_to_hyperindices(tn::QXTns.TensorNetwork, bonds_to_slice::Vector{<: Index})
+function expand_slice_bonds_to_hyperindices(tn::TensorNetwork, bonds_to_slice::Vector{<: Index})
     bond_groups = Array{Array{<:Index, 1}, 1}()
     if length(bonds_to_slice) > 0
         push!(bond_groups, find_connected_indices(tn, bonds_to_slice[1]))
@@ -213,14 +212,14 @@ for the remaining tensor network.
 - `time::Integer=120`: number of seconds to run quickbb when looking for contraction plan.
 - `qbb_order::Symbol=:min_fill`: the branching order to be used by quickbb (:random or :min_fill).
 - `lb::Bool=false`: set if a lowerbound for the treewidth should be computed.
-- `score_function::Symbol=:direct_treewidth`: function to maximise when selecting vertices
-                                            to remove. (:degree, :direct_treewidth)
+- `score_function::Symbol=:tree_trimming`: function to maximise when selecting vertices
+                                            to remove. (:degree, :direct_treewidth, :tree_trimming)
 - `hypergraph::Bool=true`: set if hyperedges exist in `tn` and should be accounted for.
 """
 function contraction_scheme(tn::TensorNetwork, num::Integer;
                             time::Integer=120,
                             seed::Integer=-1,
-                            score_function::Symbol=:direct_treewidth,
+                            score_function::Symbol=:tree_trimming,
                             hypergraph::Bool=true)
 
     # Create the line graph for the given tn.

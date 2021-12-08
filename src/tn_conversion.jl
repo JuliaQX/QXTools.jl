@@ -1,6 +1,4 @@
 using .Circuits
-using QXZoo
-using QXTns
 
 export convert_to_tnc
 
