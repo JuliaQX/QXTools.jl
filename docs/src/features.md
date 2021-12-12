@@ -8,7 +8,7 @@ One feature that `QXTools` uses by default is that of [hypergraphs](https://arxi
 
 This is useful because to find an efficient contraction plan for a given tensor network, `QXTools` first creates a line graph for the network topology and then runs the FlowCutter algorithm to find a tree decompostion for that line graph which can be converted into a contraction plan. Running FlowCutter on smaller graphs often results in more efficient contraction plans, with a smaller treewidth, in a shorter amount of time.
 
-`QXTools`, together with `QXTns`, can automatically detect the diagonal structure of gate tensors in a network and create the line graph of a network while taking the hypergraph structure of the network into account. We illustrate this below by creating the line graph for a network both with and without taking the hypergraph structure into account and show that using the hypergraph structure results in a smaller line graph. Below, the line graph is represented by the [LabeledGraph](https://juliaqx.github.io/QXGraphDecompositions.jl/dev/LabeledGraph/) data structure implemented by the `QXGraphDecompositions` package. `@show`-ing this object should display the number of vertices and edges in the graph. 
+`QXTools`, together with `QXTns`, can automatically detect the diagonal structure of gate tensors in a network and create the line graph of a network while taking the hypergraph structure of the network into account. We illustrate this below by creating the line graph for a network both with and without taking the hypergraph structure into account and show that using the hypergraph structure results in a smaller line graph. Below, the line graph is represented by the [LabeledGraph](https://juliaqx.github.io/QXGraphDecompositions.jl/dev/LabeledGraph/) data structure implemented by the `QXGraphDecompositions` package. `@show`-ing this object should display the number of vertices and edges in the graph.
 
 ```
 # Create a random circuit.
@@ -38,7 +38,7 @@ For simulations that use a contraction plan with a large treewidth, it may be th
 
 The standard method for reducing the memory requirements of a simulation in exchange for greater time complexity is known as slicing. This method works by fixing the value of selected indices in the network to decompose the contraction of the network into the sum of contractions of smaller networks. For more details on this method see the section on slicing in [this](https://arxiv.org/pdf/2005.06787.pdf) article.
 
-For a given contraction plan for a tensor network, `QXTools` uses [Shutski's tree-trimming](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.102.062614), which is implemented in the package `QXGraphDecompositions` to select efficient indices of a network to slice. 
+For a given contraction plan for a tensor network, `QXTools` uses [Shutski's tree-trimming](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.102.062614), which is implemented in the package `QXGraphDecompositions` to select efficient indices of a network to slice.
 
 To find a contraction plan for a quantum circuit using flowcutter and then slice a specific number of indices using Shutski's tree trimming method, the convenience function `contraction_scheme` can be used and is demonstrated below.
 
@@ -57,7 +57,7 @@ add_input!(tnc)
 indices_to_slice, contraction_plan, metadata = contraction_scheme(tnc, 8; time=10, hypergraph=true)
 
 println("The number of indices to be sliced is ", length(indices_to_slice))
-println("The treewidth as a function of the number of indices sliced is ", 
+println("The treewidth as a function of the number of indices sliced is ",
 metadata["Slicing"]["Treewidths after slicing consecutive edges"])
 ```
 
@@ -67,7 +67,7 @@ The output of a distributed simulation run by `QXContexts` is determined by outp
 
 ### Rejection
 
-To generate random bitstrings, which are distributed as if they were measured on an ideal, noiseless quantum device running our quantum circuit, rejection sampling can be used. To create the output dictionary for rejection sampling, we can use the following keyword arguments of `output_params_dict`. 
+To generate random bitstrings, which are distributed as if they were measured on an ideal, noiseless quantum device running our quantum circuit, rejection sampling can be used. To create the output dictionary for rejection sampling, we can use the following keyword arguments of `output_params_dict`.
 
 ```
 num_qubits = 5
@@ -89,7 +89,7 @@ To compute the probability amplitudes for a list of bitstrings the list method c
 ```
 num_qubits = 5
 num_outputs = 3
-bitstrings = ["1111", "1101", "0101"] 
+bitstrings = ["1111", "1101", "0101"]
 
 output_params = output_params_dict(num_qubits, num_outputs;
                                     output_method = :List,

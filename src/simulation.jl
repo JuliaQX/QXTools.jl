@@ -28,7 +28,7 @@ function amplitudes_uniform(qubits::Int, seed::Union{Int, Nothing}, number_ampli
 end
 
 """
-    generate_simulation_files(circ::QXZoo.Circuit.Circ,
+    generate_simulation_files(circ,
                               output_prefix::String="simulation_input",
                               number_bonds_to_slice::Int=2;
                               decompose::Bool=true,
@@ -49,7 +49,7 @@ file with the parameters to use during the simulation.
 - `decompose::Bool=true`: set if two qubit gates should be decompoed when the circuit is converted to a tensor network.
 - `kwargs`: all other kwargs are passed to `contraction_scheme` when it is called.
 """
-function generate_simulation_files(circ::QXZoo.Circuit.Circ,
+function generate_simulation_files(circ,
                                    output_prefix::String="simulation_input",
                                    number_bonds_to_slice::Int=2;
                                    decompose::Bool=true,

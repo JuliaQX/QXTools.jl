@@ -74,7 +74,7 @@ For more details and options see the documentation at [docs](https://juliaqx.git
 
 ## Contributing
 Contributions from users are welcome and we encourage users to open issues and submit merge/pull requests for any problems or feature requests they have. The
-[CONTRIBUTING.md](CONTRIBUTION.md) has further details of the contribution guidelines.
+[CONTRIBUTING.md](CONTRIBUTING.md) has further details of the contribution guidelines.
 
 
 ## Building documentation
