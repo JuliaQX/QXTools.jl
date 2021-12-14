@@ -47,7 +47,7 @@ On compute clusters it is advised to use the system provided MPI installation. F
 Once MPI.jl has been installed and configured the simulation example described above can be run in parallel on two processes with
 
 ```
-mpiexecjl --project -n 2 julia -d rqc_7_7_16.qx -o rqc_7_7_16_output.jld2 -m
+mpiexecjl --project -n 2 julia  bin/qxrun.jl -d rqc_7_7_16.qx -o rqc_7_7_16_output.jld2 -m
 ```
 
 where the `-n 2` specifies the number of processes to use and the `-m` option enabled MPI.
@@ -106,7 +106,7 @@ results in the following timing output
  Running on two processes with
 
 ```
-mpiexecjl --project -n 1 julia bin/qxrun.jl -d rqc_7_7_16.qx -o rqc_7_7_16_output.jld2 -m  -t -b 1
+mpiexecjl --project -n 2 julia bin/qxrun.jl -d rqc_7_7_16.qx -o rqc_7_7_16_output.jld2 -m  -t -b 1
 ```
 
 we get
