@@ -77,7 +77,7 @@ Classical simulation of quantum circuits is essential for debugging and validati
 Tensor networks refer to networks of interconnected tensors, the use of which originated in the condensed matter physics and quantum information communities as a means of simulating strongly correlated many body quantum systems. Expressing a quantum circuit as a tensor network is very straightforward and involves replacing each gate with a tensor and registers with sets of interconnected tensors. Single qubit Hadamard gates remain unchanged from their matrix representation, while two qubit gates can be expressed as a single rank 4 tensor or two connected rank 3 tensors. Once the quantum circuit is expressed as a network of interconnected tensors operations can be performed by contracting tensors together. For further details there are many excellent resources on tensor networks and their use in quantum information, see [@Biamonte:2017], [@Bridgeman:2017], [@Wood:2011].
 
 This is a very active area of research with many packages available offering quantum circuit simulation capabilities using tensor network methods, each with different capabilities.
-These include the quimb package [@Gray:2018], ExaTN [@McCaskey:2019], Koala [@Pang:2020], PastaQ [@Torlai] and Jet [@Vincent:2021].
+These include the quimb package [@Gray:2018], ExaTN [@McCaskey:2019], Koala [@Pang:2020], PastaQ [@Torlai:2020] and Jet [@Vincent:2021].
 Some of the more distinctive features of QXTools is the use of the Flowcutter algorithm for contraction path finding, the focus on distributed simulation, the use of Julia and the modular design.
 
 # Functionality and design
