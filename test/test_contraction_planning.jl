@@ -51,7 +51,7 @@ end
     tnc = convert_to_tnc(circ, no_input=false, no_output=true, decompose=false)
 
     # test contraction plan
-    plan = flow_cutter_contraction_plan(tnc; time=30)
+    plan = flow_cutter_contraction_plan(tnc; time=15)
     @test length(plan) == 5
 
     # test contracting the network
@@ -94,7 +94,7 @@ end
         Circuit.add_gatecall!(circ, DefaultGates.z(1))
     end
     tnc = convert_to_tnc(circ, no_input=false, no_output=false, decompose=false)
-    plan = flow_cutter_contraction_plan(tnc; time = 30, hypergraph=true)
+    plan = flow_cutter_contraction_plan(tnc; time = 15, hypergraph=true)
     @test length(plan) == 41
 end
 
