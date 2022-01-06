@@ -25,7 +25,7 @@ include("../bin/prepare_rqc_simulation_files.jl")
     mktempdir() do path
         prefix = joinpath(path, "rqc_3_3_8")
         N = 20
-        args = ["-p", prefix, "-n", "$N", "--time", "30", "--output_method", "Rejection"]
+        args = ["-p", prefix, "-n", "$N", "--time", "15", "--output_method", "Rejection"]
         Logging.with_logger(Logging.NullLogger()) do # suppress logging
             main(args)
         end
@@ -40,7 +40,7 @@ include("../bin/prepare_rqc_simulation_files.jl")
     mktempdir() do path
         prefix = joinpath(path, "rqc_3_3_8")
         N = 20
-        args = ["-p", prefix, "-n", "$N", "--time", "30"]
+        args = ["-p", prefix, "-n", "$N", "--time", "15"]
         Logging.with_logger(Logging.NullLogger()) do # suppress logging
             main(args)
         end
