@@ -1,7 +1,7 @@
 name = "QXTools"
 uuid = "84f0eee1-10ae-40da-994b-b9d0e53829ae"
 authors = ["QuantEx team"]
-version = "0.2.3"
+version = "0.2.4"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"

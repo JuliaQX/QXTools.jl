@@ -37,28 +37,3 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           file: lcov.info
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
-        with:
-          version: '1'
-      - uses: julia-actions/julia-buildpkg@v1
-      - run: |
-          julia --project -e '
-            using Pkg
-            Pkg.instantiate()
-            Pkg.add("Documenter")
-            Pkg.add("DataFrames")
-            Pkg.add("Latexify")'
-      - run: |
-          julia --project -e '
-            using Documenter: doctest
-            using QXTools
-            doctest(QXTools)'
-      - run: julia --project docs/make.jl
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
