@@ -51,4 +51,4 @@ will generate the files:
 - `ghz_3.jld2`: A data file with intitial tensors
 - `ghz_3.yml`: A parameter file with parameters controlling the simulation
 
-These can be used as input to QXContexts to run the simulation on distributed clusters.
+These can be used as input to [QXContexts](https://juliaqx.github.io/QXContexts.jl/stable/) to run the simulation on distributed clusters.
