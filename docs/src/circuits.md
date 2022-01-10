@@ -4,7 +4,7 @@ In the [introduction](basics.md) tutorial circuits are constructed by explicitly
 For larger circuits this can get tedious and it is easier to construct circuits using QXZoo or to convert circuits created using [Yao.jl](https://yaoquantum.org/) to TensorNetworkCircuits.
 
 ## QXZoo
-QXZoo was developed to simplify this process and provides functions for constructing commonly used circuits as well as primatives for building circuits from commonly used gate sets.
+[QXZoo](https://juliaqx.github.io/QXZoo.jl/stable/) was developed to simplify this process and provides functions for constructing commonly used circuits as well as primatives for building circuits from commonly used gate sets.
 QXTools wraps many of the functions from QXZoo to improve integration and provides a simple interface for creating [Greenberger–Horne–Zeilinger](https://arxiv.org/abs/0712.0921) (GHZ), Quantum Fourier Transform (QFT) and Random Quantum Circuits (RQC).
 
 To create a GHZ circuit with 5 qubits one would use
