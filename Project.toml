@@ -1,7 +1,7 @@
 name = "QXTools"
 uuid = "84f0eee1-10ae-40da-994b-b9d0e53829ae"
 authors = ["QuantEx team"]
-version = "0.2.5"
+version = "1.0.0"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
@@ -30,10 +30,10 @@ DataStructures = "0.18"
 FileIO = "1.6"
 JLD2 = "0.4"
 LightGraphs = "1.3"
-QXContexts = "0.3"
-QXGraphDecompositions = "0.2"
-QXTns = "0.1"
-QXZoo = "0.1"
+QXContexts = "1.0"
+QXGraphDecompositions = "1.0"
+QXTns = "1.0"
+QXZoo = "1.0"
 Reexport = "1.1"
 TensorOperations = "3.1"
 TestSetExtensions = "2.0"
