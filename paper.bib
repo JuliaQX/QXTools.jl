@@ -25,7 +25,7 @@
 }
 
 @article{Luo:2020,
-	title = {Yao.jl: {Extensible}, {Efficient} {Framework} for {Quantum} {Algorithm} {Design}},
+	title = {Yao.jl: Extensible, Efficient Framework for Quantum Algorithm Design},
 	volume = {4},
 	shorttitle = {Yao.jl},
 	url = {https://quantum-journal.org/papers/q-2020-10-11-341/},
@@ -71,8 +71,12 @@ pages={223001}
 @article{Wood:2011,
 title={Tensor networks and graphical calculus for open quantum systems},
 author={Christopher J. Wood and Jacob D. Biamonte and David G. Cory},
-year={2011},
+year={2015},
 DOI={10.26421/qic15.9-10-3},
+journal={Quantum Information and Computation},
+volume=15,
+number={9--10},
+month=jul,
 eprint={1111.6950},
 archivePrefix={arXiv},
 primaryClass={quant-ph}
@@ -81,7 +85,7 @@ primaryClass={quant-ph}
 @article{Villalonga:2019,
 author = {Villalonga, Benjamin and Lyakh, Dmitry and Boixo, Sergio and Neven, Hartmut and Humble, Travis S. and Biswas, Rupak and Rieffel, Eleanor G. and Ho, Alan and Mandr{\`{a}}, Salvatore},
 pages = {1--11},
-title = {{Establishing the Quantum Supremacy Frontier with a 281 Pflop/s Simulation}},
+title = {Establishing the Quantum Supremacy Frontier with a 281 Pflop/s Simulation},
 url = {http://arxiv.org/abs/1905.00444},
 year = {2019},
 doi = {10.1088/2058-9565/ab7eeb},
@@ -90,17 +94,18 @@ eprint        = "1905.00444",
 primaryClass  = "quant-ph",
 }
 
-@inproceedings{Hamann:2016,
+@article{Hamann:2016,
   author =       {Hamann, Michael and Strasser, Ben},
   title =        {Graph Bisection with Pareto-Optimization},
-  publisher =    {ACM Journal of Experimental Algorithmics},
+  journal =    {ACM Journal of Experimental Algorithmics},
   pages =        {1--34},
+  volume = 23,
   doi =          {10.1145/3173045},
   year = {2018}
 }
 
 @article{Brennan:2021,
-	title = {Tensor {Network} {Circuit} {Simulation} at {Exascale}},
+	title = {Tensor Network Circuit Simulation at Exascale},
 	url = {http://arxiv.org/abs/2110.09894},
 	abstract = {Tensor network methods are incredibly effective for simulating quantum circuits. This is due to their ability to efficiently represent and manipulate the wave-functions of large interacting quantum systems. We describe the challenges faced when scaling tensor network simulation approaches to Exascale compute platforms and introduce QuantEx, a framework for tensor network circuit simulation at Exascale.},
 	urldate = {2021-12-14},
@@ -115,7 +120,7 @@ primaryClass  = "quant-ph",
 }
 
 @article{Brayford:2021,
-	title = {Deploying {Containerized} {QuantEx} {Quantum} {Simulation} {Software} on {HPC} {Systems}},
+	title = {Deploying Containerized {QuantEx} Quantum Simulation Software on {HPC} Systems},
 	url = {http://arxiv.org/abs/2110.05162},
 	abstract = {The simulation of quantum circuits using the tensor network method is very computationally demanding and requires significant High Performance Computing (HPC) resources to find an efficient contraction order and to perform the contraction of the large tensor networks. In addition, the researchers want a workflow that is easy to customize, reproduce and migrate to different HPC systems. In this paper, we discuss the issues associated with the deployment of the QuantEX quantum computing simulation software within containers on different HPC systems. Also, we compare the performance of the containerized software with the software running on bare metal.},
 	urldate = {2021-12-14},
@@ -138,7 +143,7 @@ primaryClass  = "quant-ph",
 
 
 @article{Gray:2018,
-	title = {quimb: {A} python package for quantum information and many-body calculations},
+	title = {quimb: {A} {P}ython package for quantum information and many-body calculations},
 	volume = {3},
 	issn = {2475-9066},
 	shorttitle = {quimb},
@@ -172,7 +177,7 @@ primaryClass  = "quant-ph",
 }
 
 @article{McCaskey:2019,
-	title = {{ExaTN} - {A} {Scalable} {Exascale} {Math} {Library} for {Hierarchical} {Tensor} {Network} {Representations} and {Simulations}},
+	title = {{ExaTN} - A Scalable Exascale Math Library for Hierarchical Tensor Network Representations and Simulations},
 	volume = {2019},
 	url = {https://ui.adsabs.harvard.edu/abs/2019APS..MARB22012M},
 	abstract = {A problem that will benefit from exascale computing is predictive simulation of two- and three-dimensional quantum many-body Hamiltonians. Enabling efficient numerical simulations requires new insights into wavefunction compression that scales on extremely heterogeneous HPC architectures. To address this need, we develop ExaTN: a math library of parallel numerical primitives for processing operations based on hierarchical tensor representations. Our library provides a scalable infrastructure for building a performance portable framework for simulating strongly correlated quantum systems on heterogeneous HPC platforms such as Titan and Summit. Our framework is the first to deliver a massively parallel implementation of the multiscale entanglement renormalization ansatz (MERA), a promising hierarchical tensor decomposition scheme capable of expressing local expectation values in strongly entangled quantum systems efficiently. In this talk, we will present our integrated framework for processing hierarchical tensor representations on exascale HPC systems via a multi-level asynchronous task-based programming model. This provides scientists with a capability for simulating strongly entangled systems in condensed matter physics. Laboratory Directed Research and Development Program ORNL.},
@@ -186,7 +191,7 @@ ADS Bibcode: 2019APS..MARB22012M},
 }
 
 @article{Pang:2020,
-	title = {Efficient {2D} {Tensor} {Network} {Simulation} of {Quantum} {Systems}},
+	title = {Efficient {2D} Tensor Network Simulation of Quantum Systems},
 	url = {http://arxiv.org/abs/2006.15234},
 	abstract = {Simulation of quantum systems is challenging due to the exponential size of the state space. Tensor networks provide a systematically improvable approximation for quantum states. 2D tensor networks such as Projected Entangled Pair States (PEPS) are well-suited for key classes of physical systems and quantum circuits. However, direct contraction of PEPS networks has exponential cost, while approximate algorithms require computations with large tensors. We propose new scalable algorithms and software abstractions for PEPS-based methods, accelerating the bottleneck operation of contraction and refactorization of a tensor subnetwork. We employ randomized SVD with an implicit matrix to reduce cost and memory footprint asymptotically. Further, we develop a distributed-memory PEPS library and study accuracy and efficiency of alternative algorithms for PEPS contraction and evolution on the Stampede2 supercomputer. We also simulate a popular near-term quantum algorithm, the Variational Quantum Eigensolver (VQE), and benchmark Imaginary Time Evolution (ITE), which compute ground states of Hamiltonians.},
 	urldate = {2021-12-14},
