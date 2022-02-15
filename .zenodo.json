@@ -1,6 +1,6 @@
 {
     "description": "<p>QXTools is a framework for simulating quantum circuits using tensor network methods. Weak simulation is the primary use case where given a quantum circuit and input state QXTools will efficiently calculate the probability amplitude of a given output configuration or set of configurations. Given this ability one can sample from the output distribution using random sampling approaches. QXTools is intended to be used by researchers interested in simulating circuits larger than those possible with full wave-function simulators or those interested in research and development of tensor network circuit simulation methods.</p>",
-    "license": "MIT License",
+    "license": "mit-license",
     "title": "QXTools: A Julia framework for distributed quantum circuit simulation",
     "version": "v1.0.0",
     "upload_type": "software",
